@@ -1,0 +1,31 @@
+body {
+  background: #0b1c2d;
+  color: white;
+  font-family: Arial;
+  text-align: center;
+}
+
+.logo { width: 140px; margin-top: 20px; }
+
+.prices {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+}
+
+.prices div {
+  background: rgba(255,255,255,0.1);
+  padding: 20px;
+  border-radius: 6px;
+}
+
+.btn, button {
+  display: inline-block;
+  margin: 10px;
+  padding: 12px 20px;
+  background: linear-gradient(135deg,#1da1ff,#7a3cff);
+  border: none;
+  color: white;
+  border-radius: 6px;
+  cursor: pointer;
+}
