@@ -1,4 +1,131 @@
-<h2>Request an Account</h2>
-<input id="email" placeholder="Email">
-<button onclick="req()">Submit</button>
-<script src="script.js"></script>
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Request Account - XVision IPTV</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Back Button -->
+    <a href="index.html" class="back-btn">
+      <i class="fas fa-arrow-left"></i> Back to Home
+    </a>
+
+    <!-- Request Form -->
+    <div class="form-container">
+      <div class="form-header">
+        <h2><i class="fas fa-user-plus"></i> Request Your Account</h2>
+        <p>Fill out the form below and we'll get back to you within 24 hours</p>
+      </div>
+
+      <form id="requestForm" onsubmit="event.preventDefault(); req();">
+        <div class="form-group">
+          <label for="email"><i class="fas fa-envelope"></i> Email Address</label>
+          <input type="email" id="email" placeholder="your.email@example.com" required>
+        </div>
+
+        <div class="form-group">
+          <label for="name"><i class="fas fa-user"></i> Full Name</label>
+          <input type="text" id="name" placeholder="John Smith">
+        </div>
+
+        <div class="form-group">
+          <label for="plan"><i class="fas fa-tag"></i> Preferred Plan</label>
+          <select id="plan">
+            <option value="with_device">With Device (£80/year)</option>
+            <option value="without_device">Without Device (£45/year)</option>
+            <option value="not_sure">Not Sure - Need Advice</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="message"><i class="fas fa-comment"></i> Additional Notes</label>
+          <textarea id="message" placeholder="Any specific requirements or questions..." rows="4"></textarea>
+        </div>
+
+        <div class="form-group checkbox">
+          <input type="checkbox" id="terms" required>
+          <label for="terms">I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a></label>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block">
+          <i class="fas fa-paper-plane"></i> Submit Request
+        </button>
+      </form>
+
+      <!-- Status Message -->
+      <div id="statusMessage" style="display: none; margin-top: 20px; padding: 15px; border-radius: 6px; text-align: center;"></div>
+
+      <div class="form-footer">
+        <p><i class="fas fa-info-circle"></i> Need help? Email us at <strong>subscriptions@xvision-tv.xyz</strong></p>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+  <script>
+    // Enhanced request function for the form
+    async function req() {
+      const email = document.getElementById("email").value;
+      const name = document.getElementById("name").value;
+      const plan = document.getElementById("plan").value;
+      const message = document.getElementById("message").value;
+      
+      if (!email) {
+        showStatus("Please enter your email address", "error");
+        return;
+      }
+
+      if (!document.getElementById("terms").checked) {
+        showStatus("Please accept the terms and conditions", "error");
+        return;
+      }
+
+      const btn = document.querySelector('button[type="submit"]');
+      const originalText = btn.innerHTML;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+      btn.disabled = true;
+
+      try {
+        const res = await fetch("https://xvision-backend-ao7z.onrender.com/request/account", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            email: email,
+            name: name,
+            plan: plan,
+            message: message,
+            date: new Date().toISOString()
+          })
+        });
+
+        if (res.ok) {
+          showStatus("Request submitted successfully! We'll contact you within 24 hours.", "success");
+          document.getElementById("requestForm").reset();
+        } else {
+          showStatus("Error submitting request. Please try again.", "error");
+        }
+      } catch (err) {
+        showStatus("Server error. Please check your connection.", "error");
+      } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+      }
+    }
+
+    function showStatus(message, type) {
+      const statusDiv = document.getElementById("statusMessage");
+      statusDiv.textContent = message;
+      statusDiv.style.display = "block";
+      statusDiv.style.backgroundColor = type === "success" ? "rgba(76, 175, 80, 0.2)" : "rgba(244, 67, 54, 0.2)";
+      statusDiv.style.color = type === "success" ? "#4CAF50" : "#F44336";
+      statusDiv.style.border = `1px solid ${type === "success" ? "#4CAF50" : "#F44336"}`;
+      
+      setTimeout(() => {
+        statusDiv.style.display = "none";
+      }, 5000);
+    }
+  </script>
+</body>
+</html>
