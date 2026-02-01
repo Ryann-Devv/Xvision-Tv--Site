@@ -1,4 +1,4 @@
-const API = "https://YOUR-RENDER-URL.onrender.com";
+const API = "https://xvision-backend-ao7z.onrender.com/";
 
 function req(){
   fetch(API+"/request/account",{method:"POST",
