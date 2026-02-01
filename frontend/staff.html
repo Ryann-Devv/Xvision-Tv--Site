@@ -234,11 +234,9 @@
 
  
   <script src="script.js"></script>
-<script src="script.js"></script>
 <script>
-    // Admin Dashboard Functions
+    // Admin Dashboard Functions - NO DUPLICATE API_BASE HERE
     let currentStaffEmail = '';
-    const API_BASE = "https://xvision-backend-ao7z.onrender.com";
     
     // Enhanced staff login with dashboard loading
     async function staffLogin() {
@@ -251,7 +249,8 @@
         }
 
         try {
-            const res = await fetch(`${API_BASE}/staff/login`, {
+            // Using backend URL directly
+            const res = await fetch("https://xvision-backend-ao7z.onrender.com/staff/login", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email, password })
@@ -269,23 +268,26 @@
             localStorage.setItem("staffEmail", data.email);
             localStorage.setItem("staffRole", data.role || "staff");
             
-            // Show dashboard - FIXED ORDER
+            // Show dashboard
             document.getElementById("staffLoginBox").style.display = "none";
-            document.getElementById("staffPanel").style.display = "block";
+            const staffPanel = document.getElementById("staffPanel");
+            if (staffPanel) {
+                staffPanel.style.display = "block";
+            }
             
-            // FIX: Update display immediately
+            // Update email display immediately
             const emailDisplay = document.getElementById("staffEmailDisplay");
             if (emailDisplay) {
                 emailDisplay.textContent = `Logged in as: ${data.email}`;
             } else {
-                console.error("staffEmailDisplay element not found");
-                // Create it dynamically if missing
-                const userInfoDiv = document.querySelector(".user-info");
-                if (userInfoDiv) {
-                    const newDisplay = document.createElement("span");
-                    newDisplay.id = "staffEmailDisplay";
-                    newDisplay.textContent = `Logged in as: ${data.email}`;
-                    userInfoDiv.insertBefore(newDisplay, userInfoDiv.firstChild);
+                console.log("Email display element not found, creating it...");
+                // Try to find user-info div and add display
+                const userInfo = document.querySelector('.user-info');
+                if (userInfo) {
+                    const newSpan = document.createElement('span');
+                    newSpan.id = 'staffEmailDisplay';
+                    newSpan.textContent = `Logged in as: ${data.email}`;
+                    userInfo.insertBefore(newSpan, userInfo.firstChild);
                 }
             }
             
@@ -294,51 +296,56 @@
             
         } catch (err) {
             alert("Server error. Please try again.");
-            console.error(err);
+            console.error("Login error:", err);
         }
     }
     
     // Load all dashboard data
     async function loadDashboardData() {
+        console.log("Loading dashboard data...");
+        
+        // Show loading states
+        document.getElementById("customerCount").textContent = "...";
+        document.getElementById("pendingCount").textContent = "...";
+        document.getElementById("filmRequestCount").textContent = "...";
+        document.getElementById("supportCount").textContent = "...";
+        
         try {
+            // Load stats first
+            await loadStats();
+            
+            // Load tables
             await Promise.all([
-                loadStats(),
                 loadPendingRequests(),
                 loadCustomers(),
                 loadFilmRequests(),
                 loadSupportTickets()
             ]);
+            
+            console.log("Dashboard data loaded successfully");
         } catch (err) {
-            console.error("Error loading dashboard data:", err);
+            console.error("Error loading dashboard:", err);
         }
     }
     
     // Load statistics
     async function loadStats() {
         try {
-            const res = await fetch(`${API_BASE}/staff/stats`);
-            if (!res.ok) {
-                console.warn("Stats endpoint not available, using fallback");
-                updateStatsFromTables();
-                return;
-            }
-            
-            const data = await res.json();
-            
-            // Update count displays
-            if (document.getElementById("customerCount")) {
+            // Try new stats endpoint
+            const res = await fetch("https://xvision-backend-ao7z.onrender.com/staff/stats");
+            if (res.ok) {
+                const data = await res.json();
+                console.log("Stats data:", data);
+                
                 document.getElementById("customerCount").textContent = data.customers || 0;
-            }
-            if (document.getElementById("pendingCount")) {
                 document.getElementById("pendingCount").textContent = data.pending || 0;
-            }
-            if (document.getElementById("filmRequestCount")) {
                 document.getElementById("filmRequestCount").textContent = data.films || 0;
-            }
-            if (document.getElementById("supportCount")) {
                 document.getElementById("supportCount").textContent = data.support || 0;
+            } else {
+                // Fallback: count from tables
+                console.log("Stats endpoint failed, using fallback");
+                updateStatsFromTables();
             }
-            
         } catch (err) {
             console.error("Error loading stats:", err);
             updateStatsFromTables();
@@ -347,38 +354,26 @@
     
     // Fallback: update stats from table counts
     function updateStatsFromTables() {
-        setTimeout(() => {
-            const pendingRows = document.querySelectorAll("#pendingTableBody tr").length;
-            if (pendingRows > 0 && document.getElementById("pendingCount")) {
-                document.getElementById("pendingCount").textContent = pendingRows;
-            }
-            
-            const customerRows = document.querySelectorAll("#customersTableBody tr").length;
-            if (customerRows > 0 && document.getElementById("customerCount")) {
-                document.getElementById("customerCount").textContent = customerRows;
-            }
-            
-            const filmRows = document.querySelectorAll("#filmsTableBody tr").length;
-            if (filmRows > 0 && document.getElementById("filmRequestCount")) {
-                document.getElementById("filmRequestCount").textContent = filmRows;
-            }
-            
-            const supportRows = document.querySelectorAll("#supportTableBody tr").length;
-            if (supportRows > 0 && document.getElementById("supportCount")) {
-                document.getElementById("supportCount").textContent = supportRows;
-            }
-        }, 1000);
+        // Count rows in each table
+        const pendingRows = document.querySelectorAll("#pendingTableBody tr").length;
+        const customerRows = document.querySelectorAll("#customersTableBody tr").length;
+        const filmRows = document.querySelectorAll("#filmsTableBody tr").length;
+        const supportRows = document.querySelectorAll("#supportTableBody tr").length;
+        
+        // Update counts (subtract 1 for header row if present)
+        document.getElementById("customerCount").textContent = customerRows > 1 ? customerRows - 1 : customerRows;
+        document.getElementById("pendingCount").textContent = pendingRows > 1 ? pendingRows - 1 : pendingRows;
+        document.getElementById("filmRequestCount").textContent = filmRows > 1 ? filmRows - 1 : filmRows;
+        document.getElementById("supportCount").textContent = supportRows > 1 ? supportRows - 1 : supportRows;
     }
     
     // Load pending requests
     async function loadPendingRequests() {
         try {
-            const res = await fetch(`${API_BASE}/staff/pending`);
-            if (!res.ok) {
-                throw new Error(`HTTP ${res.status}`);
-            }
-            
+            const res = await fetch("https://xvision-backend-ao7z.onrender.com/staff/pending");
             const data = await res.json();
+            console.log("Pending data:", data);
+            
             const tbody = document.getElementById("pendingTableBody");
             if (!tbody) return;
             
@@ -390,35 +385,28 @@
             }
             
             data.forEach(item => {
-                const row = document.createElement("tr");
+                const row = tbody.insertRow();
                 row.innerHTML = `
-                    <td>${escapeHtml(item.email || 'N/A')}</td>
-                    <td>${escapeHtml(item.name || 'N/A')}</td>
-                    <td>${escapeHtml(item.plan || 'N/A')}</td>
-                    <td>${item.date ? formatDate(item.date) : 'N/A'}</td>
-                    <td class="action-buttons">
-                        <button onclick="approveRequest('${escapeHtml(item.email)}')" class="btn-small btn-success">
+                    <td>${item.email || 'N/A'}</td>
+                    <td>${item.name || 'N/A'}</td>
+                    <td>${item.plan || 'N/A'}</td>
+                    <td>${item.date ? new Date(item.date).toLocaleDateString() : 'N/A'}</td>
+                    <td>
+                        <button onclick="approveRequest('${item.email}')" class="btn-small btn-success">
                             <i class="fas fa-check"></i> Approve
                         </button>
-                        <button onclick="deletePendingRequest('${escapeHtml(item.email)}')" class="btn-small btn-danger">
+                        <button onclick="deletePendingRequest('${item.email}')" class="btn-small btn-danger">
                             <i class="fas fa-trash"></i> Delete
                         </button>
                     </td>
                 `;
-                tbody.appendChild(row);
             });
             
         } catch (err) {
-            console.error("Error loading pending requests:", err);
+            console.error("Error loading pending:", err);
             const tbody = document.getElementById("pendingTableBody");
             if (tbody) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="5" style="text-align: center; color: #F44336;">
-                            Error loading: ${err.message}
-                        </td>
-                    </tr>
-                `;
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #F44336;">Error loading pending requests</td></tr>';
             }
         }
     }
@@ -426,12 +414,10 @@
     // Load customers
     async function loadCustomers() {
         try {
-            const res = await fetch(`${API_BASE}/staff/customers`);
-            if (!res.ok) {
-                throw new Error(`HTTP ${res.status}`);
-            }
-            
+            const res = await fetch("https://xvision-backend-ao7z.onrender.com/staff/customers");
             const data = await res.json();
+            console.log("Customers data:", data);
+            
             const tbody = document.getElementById("customersTableBody");
             if (!tbody) return;
             
@@ -443,39 +429,30 @@
             }
             
             data.forEach(customer => {
-                const expiresDate = customer.expires ? new Date(customer.expires) : null;
-                const isExpired = expiresDate ? expiresDate < new Date() : false;
-                
-                const row = document.createElement("tr");
+                const isExpired = customer.expires ? new Date(customer.expires) < new Date() : false;
+                const row = tbody.insertRow();
                 row.innerHTML = `
-                    <td>${escapeHtml(customer.email || 'N/A')}</td>
+                    <td>${customer.email || 'N/A'}</td>
                     <td>${customer.expires || 'N/A'}</td>
-                    <td>${customer.created ? formatDate(customer.created) : 'N/A'}</td>
+                    <td>${customer.created ? new Date(customer.created).toLocaleDateString() : 'N/A'}</td>
                     <td>
                         <span class="status-badge ${isExpired ? 'expired' : 'active'}">
                             ${isExpired ? 'Expired' : 'Active'}
                         </span>
                     </td>
-                    <td class="action-buttons">
-                        <button onclick="deleteCustomer('${escapeHtml(customer.email)}')" class="btn-small btn-danger">
+                    <td>
+                        <button onclick="deleteCustomer('${customer.email}')" class="btn-small btn-danger">
                             <i class="fas fa-trash"></i> Delete
                         </button>
                     </td>
                 `;
-                tbody.appendChild(row);
             });
             
         } catch (err) {
             console.error("Error loading customers:", err);
             const tbody = document.getElementById("customersTableBody");
             if (tbody) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="5" style="text-align: center; color: #F44336;">
-                            Error: ${err.message}
-                        </td>
-                    </tr>
-                `;
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #F44336;">Error loading customers</td></tr>';
             }
         }
     }
@@ -484,138 +461,120 @@
     async function loadFilmRequests() {
         try {
             // Try new endpoint first
-            const res = await fetch(`${API_BASE}/staff/films/all`);
-            if (!res.ok) {
+            const res = await fetch("https://xvision-backend-ao7z.onrender.com/staff/films/all");
+            let data;
+            
+            if (res.ok) {
+                data = await res.json();
+            } else {
                 // Fallback to old endpoint
-                const res2 = await fetch(`${API_BASE}/staff/films`);
-                if (!res2.ok) throw new Error(`HTTP ${res2.status}`);
-                
-                const data = await res2.json();
-                renderFilmsTable(data);
+                const res2 = await fetch("https://xvision-backend-ao7z.onrender.com/staff/films");
+                data = await res2.json();
+            }
+            
+            console.log("Films data:", data);
+            
+            const tbody = document.getElementById("filmsTableBody");
+            if (!tbody) return;
+            
+            tbody.innerHTML = '';
+            
+            if (!Array.isArray(data) || data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No film requests</td></tr>';
                 return;
             }
             
-            const data = await res.json();
-            renderFilmsTable(data);
+            data.forEach(film => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${film.title || 'N/A'}</td>
+                    <td>${film.email || film.requestedBy || 'Anonymous'}</td>
+                    <td>${film.date ? new Date(film.date).toLocaleDateString() : 'N/A'}</td>
+                    <td>
+                        <span class="status-badge pending">
+                            Pending
+                        </span>
+                    </td>
+                    <td>
+                        <button onclick="deleteFilmRequest('${film.title}')" class="btn-small btn-danger">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </td>
+                `;
+            });
             
         } catch (err) {
-            console.error("Error loading film requests:", err);
+            console.error("Error loading films:", err);
             const tbody = document.getElementById("filmsTableBody");
             if (tbody) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="5" style="text-align: center; color: #F44336;">
-                            Error: ${err.message}
-                        </td>
-                    </tr>
-                `;
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #F44336;">Error loading film requests</td></tr>';
             }
         }
-    }
-    
-    function renderFilmsTable(data) {
-        const tbody = document.getElementById("filmsTableBody");
-        if (!tbody) return;
-        
-        tbody.innerHTML = '';
-        
-        if (!Array.isArray(data) || data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No film requests</td></tr>';
-            return;
-        }
-        
-        data.forEach(film => {
-            const row = document.createElement("tr");
-            row.innerHTML = `
-                <td>${escapeHtml(film.title || 'N/A')}</td>
-                <td>${escapeHtml(film.email || film.requestedBy || 'Anonymous')}</td>
-                <td>${film.date ? formatDate(film.date) : 'N/A'}</td>
-                <td>
-                    <span class="status-badge pending">
-                        Pending
-                    </span>
-                </td>
-                <td class="action-buttons">
-                    <button onclick="deleteFilmRequest('${escapeHtml(film.title)}')" class="btn-small btn-danger">
-                        <i class="fas fa-trash"></i> Delete
-                    </button>
-                </td>
-            `;
-            tbody.appendChild(row);
-        });
     }
     
     // Load support tickets
     async function loadSupportTickets() {
         try {
             // Try new endpoint first
-            const res = await fetch(`${API_BASE}/staff/support/all`);
-            if (!res.ok) {
+            const res = await fetch("https://xvision-backend-ao7z.onrender.com/staff/support/all");
+            let data;
+            
+            if (res.ok) {
+                data = await res.json();
+            } else {
                 // Fallback to old endpoint
-                const res2 = await fetch(`${API_BASE}/staff/support-tickets`);
-                if (!res2.ok) throw new Error(`HTTP ${res2.status}`);
-                
-                const data = await res2.json();
-                renderSupportTable(data);
+                const res2 = await fetch("https://xvision-backend-ao7z.onrender.com/staff/support-tickets");
+                data = await res2.json();
+            }
+            
+            console.log("Support data:", data);
+            
+            const tbody = document.getElementById("supportTableBody");
+            if (!tbody) return;
+            
+            tbody.innerHTML = '';
+            
+            if (!Array.isArray(data) || data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No support tickets</td></tr>';
                 return;
             }
             
-            const data = await res.json();
-            renderSupportTable(data);
+            data.forEach(ticket => {
+                const messagePreview = ticket.message ? 
+                    (ticket.message.length > 50 ? ticket.message.substring(0, 50) + '...' : ticket.message) : 
+                    'No message';
+                
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${ticket.email || 'Anonymous'}</td>
+                    <td title="${ticket.message || ''}">${messagePreview}</td>
+                    <td>${ticket.date ? new Date(ticket.date).toLocaleDateString() : 'N/A'}</td>
+                    <td>
+                        <span class="status-badge ${ticket.status === 'resolved' ? 'resolved' : 'open'}">
+                            ${ticket.status || 'Open'}
+                        </span>
+                    </td>
+                    <td>
+                        <button onclick="deleteSupportTicket('${ticket.email}')" class="btn-small btn-danger">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </td>
+                `;
+            });
             
         } catch (err) {
-            console.error("Error loading support tickets:", err);
+            console.error("Error loading support:", err);
             const tbody = document.getElementById("supportTableBody");
             if (tbody) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="5" style="text-align: center; color: #F44336;">
-                            Error: ${err.message}
-                        </td>
-                    </tr>
-                `;
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #F44336;">Error loading support tickets</td></tr>';
             }
         }
-    }
-    
-    function renderSupportTable(data) {
-        const tbody = document.getElementById("supportTableBody");
-        if (!tbody) return;
-        
-        tbody.innerHTML = '';
-        
-        if (!Array.isArray(data) || data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No support tickets</td></tr>';
-            return;
-        }
-        
-        data.forEach(ticket => {
-            const messagePreview = ticket.message ? 
-                (ticket.message.length > 50 ? ticket.message.substring(0, 50) + '...' : ticket.message) : 
-                'No message';
-            
-            const row = document.createElement("tr");
-            row.innerHTML = `
-                <td>${escapeHtml(ticket.email || 'Anonymous')}</td>
-                <td title="${escapeHtml(ticket.message || '')}">${escapeHtml(messagePreview)}</td>
-                <td>${ticket.date ? formatDate(ticket.date) : 'N/A'}</td>
-                <td>
-                    <span class="status-badge ${ticket.status === 'resolved' ? 'resolved' : 'open'}">
-                        ${ticket.status || 'Open'}
-                    </span>
-                </td>
-                <td class="action-buttons">
-                    <button onclick="deleteSupportTicket('${escapeHtml(ticket.email)}')" class="btn-small btn-danger">
-                        <i class="fas fa-trash"></i> Delete
-                    </button>
-                </td>
-            `;
-            tbody.appendChild(row);
-        });
     }
     
     // Tab navigation
     function showTab(tabName) {
+        console.log("Showing tab:", tabName);
+        
         // Hide all tabs
         document.querySelectorAll('.tab-content').forEach(tab => {
             tab.classList.remove('active');
@@ -654,6 +613,44 @@
         }
     }
     
+    // Show all customers
+    function showAllCustomers() {
+        showTab('customers');
+    }
+    
+    // Refresh all data
+    function refreshData() {
+        loadDashboardData();
+        alert("Data refreshed!");
+    }
+    
+    // Create customer function (from script.js)
+    async function createCustomer() {
+        const email = document.getElementById("cemail").value;
+        const password = document.getElementById("cpass").value;
+        const expires = document.getElementById("cexp").value;
+
+        if (!email || !password || !expires) {
+            alert("Missing fields");
+            return;
+        }
+
+        const res = await fetch("https://xvision-backend-ao7z.onrender.com/staff/create", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, password, expires })
+        });
+
+        if (res.ok) {
+            alert("Customer created");
+            loadCustomers();
+            loadStats();
+            hideCreateCustomer();
+        } else {
+            alert("Error creating customer");
+        }
+    }
+    
     // Show/Hide create customer form
     function showCreateCustomer() {
         const form = document.getElementById("createCustomerForm");
@@ -665,88 +662,43 @@
         if (form) form.style.display = "none";
     }
     
-    // Show all customers
-    function showAllCustomers() {
-        showTab('customers');
-    }
-    
-    // Refresh all data
-    function refreshData() {
-        loadDashboardData();
-        showNotification("Data refreshed successfully!", "success");
-    }
-    
-    // Approve request
-    async function approveRequest(email) {
-        if (confirm(`Approve account request for ${email}?`)) {
-            try {
-                // First create customer account
-                const password = generateRandomPassword();
-                const expires = new Date();
-                expires.setFullYear(expires.getFullYear() + 1);
-                
-                const res = await fetch(`${API_BASE}/staff/create`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ 
-                        email: email, 
-                        password: password,
-                        expires: expires.toISOString().split('T')[0]
-                    })
-                });
-                
-                if (res.ok) {
-                    // Then delete from pending
-                    await deletePendingRequest(email);
-                    showNotification(`Account created for ${email}! Password: ${password}`, "success");
-                    loadDashboardData();
-                } else {
-                    const data = await res.json();
-                    showNotification(`Error: ${data.error}`, "error");
-                }
-            } catch (err) {
-                showNotification("Error approving request", "error");
-            }
-        }
-    }
-    
     // Delete functions
     async function deletePendingRequest(email) {
         if (confirm(`Delete pending request from ${email}?`)) {
             try {
-                const res = await fetch(`${API_BASE}/staff/delete/pending/${encodeURIComponent(email)}`, {
+                const res = await fetch(`https://xvision-backend-ao7z.onrender.com/staff/delete/pending/${encodeURIComponent(email)}`, {
                     method: "DELETE"
                 });
                 
                 if (res.ok) {
-                    showNotification("Pending request deleted!", "success");
+                    alert("Pending request deleted!");
                     loadPendingRequests();
                     loadStats();
                 } else {
-                    showNotification("Failed to delete", "error");
+                    alert("Failed to delete");
                 }
             } catch (err) {
-                showNotification("Error deleting request", "error");
+                alert("Error deleting request");
             }
         }
     }
     
     async function deleteCustomer(email) {
-        if (confirm(`Delete customer account ${email}? This cannot be undone.`)) {
+        if (confirm(`Delete customer account ${email}?`)) {
             try {
-                const res = await fetch(`${API_BASE}/staff/delete/customer/${encodeURIComponent(email)}`, {
+                const res = await fetch(`https://xvision-backend-ao7z.onrender.com/staff/delete/customer/${encodeURIComponent(email)}`, {
                     method: "DELETE"
                 });
                 
                 if (res.ok) {
-                    showNotification("Customer deleted!", "success");
+                    alert("Customer deleted!");
                     loadCustomers();
                     loadStats();
                 } else {
-                    showNotification("Failed to delete customer", "error");
+                    alert("Failed to delete customer");
                 }
             } catch (err) {
-                showNotification("Error deleting customer", "error");
+                alert("Error deleting customer");
             }
         }
     }
@@ -754,19 +706,19 @@
     async function deleteFilmRequest(title) {
         if (confirm(`Delete film request: "${title}"?`)) {
             try {
-                const res = await fetch(`${API_BASE}/staff/delete/film/${encodeURIComponent(title)}`, {
+                const res = await fetch(`https://xvision-backend-ao7z.onrender.com/staff/delete/film/${encodeURIComponent(title)}`, {
                     method: "DELETE"
                 });
                 
                 if (res.ok) {
-                    showNotification("Film request deleted!", "success");
+                    alert("Film request deleted!");
                     loadFilmRequests();
                     loadStats();
                 } else {
-                    showNotification("Failed to delete", "error");
+                    alert("Failed to delete");
                 }
             } catch (err) {
-                showNotification("Error deleting film request", "error");
+                alert("Error deleting film request");
             }
         }
     }
@@ -774,20 +726,28 @@
     async function deleteSupportTicket(email) {
         if (confirm(`Delete support ticket from ${email}?`)) {
             try {
-                const res = await fetch(`${API_BASE}/staff/delete/support/${encodeURIComponent(email)}`, {
+                const res = await fetch(`https://xvision-backend-ao7z.onrender.com/staff/delete/support/${encodeURIComponent(email)}`, {
                     method: "DELETE"
                 });
                 
                 if (res.ok) {
-                    showNotification("Support ticket deleted!", "success");
+                    alert("Support ticket deleted!");
                     loadSupportTickets();
                     loadStats();
                 } else {
-                    showNotification("Failed to delete", "error");
+                    alert("Failed to delete");
                 }
             } catch (err) {
-                showNotification("Error deleting support ticket", "error");
+                alert("Error deleting support ticket");
             }
+        }
+    }
+    
+    // Approve request
+    async function approveRequest(email) {
+        if (confirm(`Approve account request for ${email}?`)) {
+            alert(`Note: Auto-approve feature needs implementation. For now, manually create account for: ${email}`);
+            // You can implement auto-approve by calling createCustomer() with generated password
         }
     }
     
@@ -801,85 +761,24 @@
         document.getElementById("password").value = "";
     }
     
-    // Utility functions
-    function formatDate(dateString) {
-        if (!dateString) return 'N/A';
-        try {
-            const date = new Date(dateString);
-            return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-        } catch (e) {
-            return dateString;
-        }
-    }
-    
-    function escapeHtml(text) {
-        if (!text) return '';
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
-    
-    function generateRandomPassword() {
-        return Math.random().toString(36).slice(-8);
-    }
-    
-    function showNotification(message, type) {
-        // Create notification element
-        const notification = document.createElement('div');
-        notification.className = `notification ${type}`;
-        notification.innerHTML = `
-            <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
-            <span>${message}</span>
-            <button onclick="this.parentElement.remove()">&times;</button>
-        `;
-        
-        // Add to page
-        document.body.appendChild(notification);
-        
-        // Auto remove after 5 seconds
-        setTimeout(() => {
-            if (notification.parentElement) {
-                notification.remove();
-            }
-        }, 5000);
-    }
-    
-    // Check if already logged in
+    // Check if already logged in on page load
     window.onload = function() {
         const savedEmail = localStorage.getItem("staffEmail");
         if (savedEmail) {
             document.getElementById("email").value = savedEmail;
-            // Auto-login if credentials are saved
-            // staffLogin(); // Uncomment if you want auto-login
         }
         
-        // Check if we're already on dashboard
-        if (window.location.hash === '#dashboard' || localStorage.getItem("staffEmail")) {
-            // Try to restore session
-            const staffPanel = document.getElementById("staffPanel");
-            const loginBox = document.getElementById("staffLoginBox");
-            if (staffPanel && loginBox) {
-                const email = localStorage.getItem("staffEmail");
-                if (email) {
-                    // Show dashboard but don't load data until login
-                    loginBox.style.display = "none";
-                    staffPanel.style.display = "block";
-                    
-                    const emailDisplay = document.getElementById("staffEmailDisplay");
-                    if (emailDisplay) {
-                        emailDisplay.textContent = `Logged in as: ${email}`;
-                    }
-                    
-                    // Show loading state
-                    if (document.getElementById("customerCount")) {
-                        document.getElementById("customerCount").textContent = "Loading...";
-                    }
-                    if (document.getElementById("pendingCount")) {
-                        document.getElementById("pendingCount").textContent = "Loading...";
-                    }
-                }
-            }
-        }
+        // Debug: Check elements exist
+        console.log("Page loaded. Elements found:");
+        console.log("- staffEmailDisplay:", document.getElementById("staffEmailDisplay"));
+        console.log("- staffPanel:", document.getElementById("staffPanel"));
+        console.log("- staffLoginBox:", document.getElementById("staffLoginBox"));
+        
+        // Test backend connection
+        fetch("https://xvision-backend-ao7z.onrender.com/health")
+            .then(res => res.json())
+            .then(data => console.log("Backend health:", data))
+            .catch(err => console.warn("Backend not responding:", err));
     };
 </script>
 <style>
