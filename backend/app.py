@@ -1,29 +1,27 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from pymongo import MongoClient
-import bcrypt, os, datetime, requests
+import bcrypt, os, requests
 
 app = Flask(__name__)
 CORS(app)
 
-# ---------------- DATABASE ----------------
-MONGO_URI = os.getenv("MONGO_URI")
-client = MongoClient(MONGO_URI)
+# ---------- DB ----------
+client = MongoClient(os.getenv("MONGO_URI"))
 db = client["xvision"]
 
-customers = db["customers"]
-staff = db["staff"]
-pending = db["pending"]
-films = db["films"]
-support = db["support"]
-audit = db["audit"]
+customers = db.customers
+pending = db.pending
+staff = db.staff
+films = db.films
+support = db.support
 
-# ---------------- ENV ----------------
+# ---------- ENV ----------
 RESEND = os.getenv("RESEND_API_KEY")
 ADMIN = os.getenv("ADMIN_EMAIL")
 SUBS = os.getenv("SUBSCRIPTIONS_EMAIL")
 
-# ---------------- EMAIL ----------------
+# ---------- EMAIL ----------
 def send_email(to, subject, html):
     if not RESEND:
         return
@@ -38,88 +36,84 @@ def send_email(to, subject, html):
         }
     )
 
-# ---------------- AUDIT ----------------
-def log(action, actor):
-    audit.insert_one({
-        "action": action,
-        "actor": actor,
-        "time": datetime.datetime.utcnow().isoformat()
-    })
-
-# ---------------- PUBLIC ----------------
+# ---------- PUBLIC ----------
 @app.route("/request/account", methods=["POST"])
 def request_account():
     data = request.get_json()
     pending.insert_one(data)
-    send_email(SUBS, "New Account Request", f"<p>{data['email']}</p>")
-    log("Account requested", data["email"])
+    send_email(SUBS, "New Account Request", data["email"])
     return jsonify({"ok": True})
 
-# ---------------- CUSTOMER ----------------
+# ---------- CUSTOMER ----------
 @app.route("/customer/login", methods=["POST"])
 def customer_login():
     d = request.get_json()
     u = customers.find_one({"email": d["email"]})
-    if not u or not bcrypt.checkpw(d["password"].encode(), u["password"]):
+
+    if not u:
         return jsonify({"error": "Invalid"}), 401
 
-    log("Customer login", u["email"])
+    if not bcrypt.checkpw(d["password"].encode(), u["password"]):
+        return jsonify({"error": "Invalid"}), 401
+
     return jsonify({"email": u["email"], "expires": u["expires"]})
 
-@app.route("/customer/film", methods=["POST"])
-def customer_film():
-    d = request.get_json()
-    films.insert_one(d)
-    log("Film request", d["email"])
+@app.route("/request/film", methods=["POST"])
+def request_film():
+    films.insert_one(request.get_json())
     return jsonify({"ok": True})
 
-@app.route("/customer/support", methods=["POST"])
-def customer_support():
+@app.route("/request/support", methods=["POST"])
+def request_support():
     d = request.get_json()
     support.insert_one(d)
     send_email(ADMIN, "Support Request", d["message"])
-    log("Support request", d["email"])
     return jsonify({"ok": True})
 
-# ---------------- STAFF ----------------
+# ---------- STAFF ----------
 @app.route("/staff/login", methods=["POST"])
 def staff_login():
     d = request.get_json()
-    s = staff.find_one({"email": d["email"]})
-    if not s or s["password"] != d["password"]:
+    u = staff.find_one({"email": d["email"]})
+
+    if not u:
         return jsonify({"error": "Invalid"}), 401
 
-    log("Staff login", s["email"])
-    return jsonify({"email": s["email"], "role": s.get("role","staff")})
+    stored = u["password"].encode() if isinstance(u["password"], str) else u["password"]
+
+    # ✅ If already hashed
+    if stored.startswith(b"$2"):
+        if not bcrypt.checkpw(d["password"].encode(), stored):
+            return jsonify({"error": "Invalid"}), 401
+
+    # ⚠️ Plain‑text fallback (ONE TIME)
+    else:
+        if d["password"] != u["password"]:
+            return jsonify({"error": "Invalid"}), 401
+
+        # Auto‑upgrade to bcrypt
+        staff.update_one(
+            {"email": u["email"]},
+            {"$set": {
+                "password": bcrypt.hashpw(d["password"].encode(), bcrypt.gensalt())
+            }}
+        )
+
+    return jsonify({"email": u["email"], "role": u.get("role", "staff")})
 
 @app.route("/staff/create", methods=["POST"])
-def staff_create():
+def staff_create_customer():
     d = request.get_json()
     customers.insert_one({
         "email": d["email"],
         "password": bcrypt.hashpw(d["password"].encode(), bcrypt.gensalt()),
-        "expires": d["expires"],
-        "rem14": False,
-        "rem3": False
+        "expires": d["expires"]
     })
-    log("Customer created", d["email"])
     return jsonify({"ok": True})
 
 @app.route("/staff/pending")
 def staff_pending():
-    return jsonify(list(pending.find({},{"_id":0})))
-
-@app.route("/staff/films")
-def staff_films():
-    return jsonify(list(films.find({},{"_id":0})))
-
-@app.route("/staff/support")
-def staff_support():
-    return jsonify(list(support.find({},{"_id":0})))
-
-@app.route("/staff/audit")
-def staff_audit():
-    return jsonify(list(audit.find({},{"_id":0})))
+    return jsonify(list(pending.find({}, {"_id": 0})))
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run()
