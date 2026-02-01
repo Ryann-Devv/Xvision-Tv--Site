@@ -1,61 +1,55 @@
-const API = "https://YOUR-RENDER-APP.onrender.com";
+async function staffLogin() {
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
 
-// ---------- CUSTOMER ----------
-function login(){
-  fetch(API+"/customer/login",{
-    method:"POST",
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({
-      email:email.value,
-      password:password.value
-    })
-  }).then(r=>r.json()).then(d=>{
-    if(d.expires){
-      loginBox.style.display="none";
-      portal.style.display="block";
-      exp.innerText=d.expires;
-    } else alert("Login failed");
-  });
+  if (!email || !password) {
+    alert("Missing email or password");
+    return;
+  }
+
+  try {
+    const res = await fetch("https://YOUR-RENDER-URL.onrender.com/staff/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      alert(data.error || "Login failed");
+      return;
+    }
+
+    // ✅ SUCCESS → SHOW STAFF PANEL
+    document.getElementById("staffLoginBox").style.display = "none";
+    document.getElementById("staffPanel").style.display = "block";
+
+  } catch (err) {
+    alert("Server error");
+    console.error(err);
+  }
 }
 
-function filmReq(){
-  fetch(API+"/customer/film",{
-    method:"POST",
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({email:email.value, film:film.value})
-  });
-}
+async function createCustomer() {
+  const email = document.getElementById("cemail").value;
+  const password = document.getElementById("cpass").value;
+  const expires = document.getElementById("cexp").value;
 
-function supportReq(){
-  fetch(API+"/customer/support",{
-    method:"POST",
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({email:email.value, message:msg.value})
-  });
-}
+  if (!email || !password || !expires) {
+    alert("Missing fields");
+    return;
+  }
 
-// ---------- STAFF ----------
-function staffLogin(){
-  fetch(API+"/staff/login",{
-    method:"POST",
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({email:email.value,password:password.value})
-  }).then(r=>r.json()).then(d=>{
-    if(d.email){
-      staffLoginBox.style.display="none";
-      staffPanel.style.display="block";
-    } else alert("Login failed");
+  const res = await fetch("https://xvision-backend-ao7z.onrender.com/staff/create", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password, expires })
   });
-}
 
-function createCustomer(){
-  fetch(API+"/staff/create",{
-    method:"POST",
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({
-      email:cemail.value,
-      password:cpass.value,
-      expires:cexp.value
-    })
-  });
+  if (res.ok) {
+    alert("Customer created");
+  } else {
+    alert("Error creating customer");
+  }
 }

@@ -1,14 +1,16 @@
 <link rel="stylesheet" href="styles.css">
+
 <div id="staffLoginBox">
-  <input id="email">
-  <input id="password">
+  <input id="email" type="email" placeholder="Email">
+  <input id="password" type="password" placeholder="Password">
   <button onclick="staffLogin()">Login</button>
 </div>
 
 <div id="staffPanel" style="display:none">
-  <input id="cemail">
-  <input id="cpass">
+  <input id="cemail" type="email" placeholder="Customer email">
+  <input id="cpass" type="password" placeholder="Password">
   <input id="cexp" type="date">
   <button onclick="createCustomer()">Create</button>
 </div>
+
 <script src="script.js"></script>
