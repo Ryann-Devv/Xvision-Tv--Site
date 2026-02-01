@@ -129,29 +129,8 @@
       </div>
       
       <!-- Quick Actions Box -->
-      <div class="form-box quick-actions-box">
-        <div class="form-header">
-          <h4><i class="fas fa-bolt"></i> Quick Actions</h4>
-        </div>
-        
-        <div class="form-content">
-          <div class="actions-grid">
-            <button onclick="checkSubscription()" class="action-btn">
-              <i class="fas fa-calendar-alt"></i> Check Subscription
-            </button>
-            <button onclick="viewGuide()" class="action-btn">
-              <i class="fas fa-tv"></i> View Channel Guide
-            </button>
-            <button onclick="testConnection()" class="action-btn">
-              <i class="fas fa-wifi"></i> Test Connection
-            </button>
-            <button onclick="faq()" class="action-btn">
-              <i class="fas fa-question-circle"></i> View FAQ
-            </button>
-          </div>
-        </div>
-      </div>
       
+ 
       <!-- Logout Section -->
       <div class="logout-section">
         <button onclick="logout()" class="btn btn-outline">
@@ -172,29 +151,7 @@
   }
   
   // Quick action functions
-  function checkSubscription() {
-    const email = localStorage.getItem("customerEmail");
-    if (email) {
-      alert(`Subscription check requested for ${email}. We'll email you details.`);
-    } else {
-      alert("Please login first.");
-    }
-  }
-  
-  function viewGuide() {
-    window.open("https://xvision-tv.xyz/guide", "_blank");
-  }
-  
-  function testConnection() {
-    alert("Testing your connection... Please wait.");
-    setTimeout(() => {
-      alert("Connection test complete! All systems are operational.");
-    }, 1500);
-  }
-  
-  function faq() {
-    window.open("https://xvision-tv.xyz/faq", "_blank");
-  }
+ 
   
   // Update account email on login
   function updateAccountInfo(email) {
