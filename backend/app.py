@@ -79,10 +79,20 @@ def support_req():
 # ---------- STAFF ----------
 @app.route("/staff/login", methods=["POST"])
 def staff_login():
-    u = staff.find_one({"email":request.json["email"]})
-    if u and bcrypt.checkpw(request.json["password"].encode(), u["password"]):
-        return jsonify({"email":u["email"]})
-    return jsonify({"error":"Invalid"}),401
+    data = request.json
+    staff = staff_col.find_one({
+        "email": data["email"],
+        "password": data["password"]
+    })
+
+    if not staff:
+        return jsonify({"error": "Invalid credentials"}), 401
+
+    return jsonify({
+        "email": staff["email"],
+        "role": staff.get("role", "staff")
+    })
+
 
 @app.route("/staff/create", methods=["POST"])
 def create_customer():

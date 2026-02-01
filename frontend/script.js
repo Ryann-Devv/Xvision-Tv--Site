@@ -54,12 +54,18 @@ function staffLogin(){
   })
   .then(r=>r.json())
   .then(d=>{
+    console.log("STAFF LOGIN RESPONSE:", d);
+
     if(d.email){
       document.getElementById("staffLogin").style.display="none";
       document.getElementById("staffPanel").style.display="block";
     } else {
       alert("Login failed");
     }
+  })
+  .catch(err=>{
+    console.error(err);
+    alert("Server error");
   });
 }
 
