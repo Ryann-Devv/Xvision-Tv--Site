@@ -1,16 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Customer Portal</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
 <h2>Customer Login</h2>
-<input id="email" placeholder="Email">
-<input id="password" type="password">
-<button onclick="login()">Login</button>
 
-<p>Expires: <span id="exp"></span></p>
+<div id="loginBox">
+  <input id="email" placeholder="Email">
+  <input id="password" type="password" placeholder="Password">
+  <button onclick="login()">Login</button>
+</div>
 
-<h3>Film Request</h3>
-<input id="film">
-<button onclick="filmReq()">Send</button>
+<div id="portal" style="display:none;">
+  <p>Subscription Expires: <strong><span id="exp"></span></strong></p>
 
-<h3>Support</h3>
-<textarea id="msg"></textarea>
-<button onclick="support()">Send</button>
+  <h3>Film Request</h3>
+  <input id="film">
+  <button onclick="filmReq()">Send</button>
+
+  <h3>Support</h3>
+  <textarea id="msg"></textarea>
+  <button onclick="support()">Send</button>
+</div>
 
 <script src="script.js"></script>
+</body>
+</html>

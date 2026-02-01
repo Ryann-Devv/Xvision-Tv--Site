@@ -8,11 +8,26 @@ function req(){
 }
 
 function login(){
-  fetch(API+"/customer/login",{method:"POST",
+  fetch(API+"/customer/login",{
+    method:"POST",
     headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({email:email.value,password:password.value})
-  }).then(r=>r.json()).then(d=>exp.innerText=d.expires);
+    body:JSON.stringify({
+      email:email.value,
+      password:password.value
+    })
+  })
+  .then(r=>r.json())
+  .then(d=>{
+    if(d.expires){
+      document.getElementById("exp").innerText = d.expires;
+      document.getElementById("loginBox").style.display = "none";
+      document.getElementById("portal").style.display = "block";
+    } else {
+      alert("Login failed");
+    }
+  });
 }
+
 
 function filmReq(){
   fetch(API+"/request/film",{method:"POST",
@@ -29,11 +44,25 @@ function support(){
 }
 
 function staffLogin(){
-  fetch(API+"/staff/login",{method:"POST",
+  fetch(API+"/staff/login",{
+    method:"POST",
     headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({email:email.value,password:password.value})
+    body:JSON.stringify({
+      email:email.value,
+      password:password.value
+    })
+  })
+  .then(r=>r.json())
+  .then(d=>{
+    if(d.email){
+      document.getElementById("staffLogin").style.display="none";
+      document.getElementById("staffPanel").style.display="block";
+    } else {
+      alert("Login failed");
+    }
   });
 }
+
 
 function create(){
   fetch(API+"/staff/create",{method:"POST",
