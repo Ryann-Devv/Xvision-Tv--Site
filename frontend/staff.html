@@ -232,242 +232,613 @@
     </div>
   </div>
 
+ 
   <script src="script.js"></script>
-  <script>
+<script>
     // Admin Dashboard Functions
     let currentStaffEmail = '';
+    const API_BASE = "https://xvision-backend-ao7z.onrender.com";
     
     // Enhanced staff login with dashboard loading
     async function staffLogin() {
-      const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
+        const email = document.getElementById("email").value;
+        const password = document.getElementById("password").value;
 
-      if (!email || !password) {
-        alert("Please enter both email and password");
-        return;
-      }
-
-      try {
-        const res = await fetch("https://xvision-backend-ao7z.onrender.com/staff/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password })
-        });
-
-        const data = await res.json();
-
-        if (!res.ok) {
-          alert(data.error || "Login failed");
-          return;
+        if (!email || !password) {
+            alert("Please enter both email and password");
+            return;
         }
 
-        // Store staff info
-        currentStaffEmail = data.email;
-        localStorage.setItem("staffEmail", data.email);
-        localStorage.setItem("staffRole", data.role);
-        
-        // Show dashboard
-        document.getElementById("staffLoginBox").style.display = "none";
-        document.getElementById("staffPanel").style.display = "block";
-        
-        // Display staff email
-        document.getElementById("staffEmailDisplay").textContent = `Logged in as: ${data.email}`;
-        
-        // Load all data
-        await loadDashboardData();
-        
-      } catch (err) {
-        alert("Server error. Please try again.");
-        console.error(err);
-      }
+        try {
+            const res = await fetch(`${API_BASE}/staff/login`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email, password })
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                alert(data.error || "Login failed");
+                return;
+            }
+
+            // Store staff info
+            currentStaffEmail = data.email;
+            localStorage.setItem("staffEmail", data.email);
+            localStorage.setItem("staffRole", data.role);
+            
+            // Show dashboard
+            document.getElementById("staffLoginBox").style.display = "none";
+            document.getElementById("staffPanel").style.display = "block";
+            
+            // Display staff email
+            document.getElementById("staffEmailDisplay").textContent = `Logged in as: ${data.email}`;
+            
+            // Load all data
+            await loadDashboardData();
+            
+        } catch (err) {
+            alert("Server error. Please try again.");
+            console.error(err);
+        }
     }
     
     // Load all dashboard data
     async function loadDashboardData() {
-      await loadPendingRequests();
-      await loadCustomers();
-      await loadFilmRequests();
-      await loadSupportTickets();
-      updateStats();
+        await loadStats();
+        await loadPendingRequests();
+        await loadCustomers();
+        await loadFilmRequests();
+        await loadSupportTickets();
+    }
+    
+    // Load statistics
+    async function loadStats() {
+        try {
+            const res = await fetch(`${API_BASE}/staff/stats`);
+            if (!res.ok) return;
+            
+            const data = await res.json();
+            
+            // Update count displays
+            document.getElementById("customerCount").textContent = data.customers || 0;
+            document.getElementById("pendingCount").textContent = data.pending || 0;
+            document.getElementById("filmRequestCount").textContent = data.films || 0;
+            document.getElementById("supportCount").textContent = data.support || 0;
+            
+        } catch (err) {
+            console.error("Error loading stats:", err);
+        }
     }
     
     // Load pending requests
     async function loadPendingRequests() {
-      try {
-        const res = await fetch("https://xvision-backend-ao7z.onrender.com/staff/pending");
-        const data = await res.json();
-        
-        const tbody = document.getElementById("pendingTableBody");
+        try {
+            const res = await fetch(`${API_BASE}/staff/pending`);
+            if (!res.ok) {
+                throw new Error(`HTTP ${res.status}`);
+            }
+            
+            const data = await res.json();
+            const tbody = document.getElementById("pendingTableBody");
+            tbody.innerHTML = '';
+            
+            if (!Array.isArray(data) || data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No pending requests</td></tr>';
+                return;
+            }
+            
+            data.forEach(item => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${escapeHtml(item.email || 'N/A')}</td>
+                    <td>${escapeHtml(item.name || 'N/A')}</td>
+                    <td>${escapeHtml(item.plan || 'N/A')}</td>
+                    <td>${item.date ? formatDate(item.date) : 'N/A'}</td>
+                    <td class="action-buttons">
+                        <button onclick="approveRequest('${escapeHtml(item.email)}')" class="btn-small btn-success">
+                            <i class="fas fa-check"></i> Approve
+                        </button>
+                        <button onclick="deletePendingRequest('${escapeHtml(item.email)}')" class="btn-small btn-danger">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+            
+        } catch (err) {
+            console.error("Error loading pending requests:", err);
+            const tbody = document.getElementById("pendingTableBody");
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" style="text-align: center; color: #F44336;">
+                        Error: ${err.message}
+                    </td>
+                </tr>
+            `;
+        }
+    }
+    
+    // Load customers - FIXED
+    async function loadCustomers() {
+        try {
+            const res = await fetch(`${API_BASE}/staff/customers`);
+            if (!res.ok) {
+                throw new Error(`HTTP ${res.status}`);
+            }
+            
+            const data = await res.json();
+            const tbody = document.getElementById("customersTableBody");
+            tbody.innerHTML = '';
+            
+            if (!Array.isArray(data) || data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No customers found</td></tr>';
+                return;
+            }
+            
+            data.forEach(customer => {
+                const expiresDate = customer.expires ? new Date(customer.expires) : null;
+                const isExpired = expiresDate ? expiresDate < new Date() : false;
+                
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${escapeHtml(customer.email || 'N/A')}</td>
+                    <td>${customer.expires || 'N/A'}</td>
+                    <td>${customer.created ? formatDate(customer.created) : 'N/A'}</td>
+                    <td>
+                        <span class="status-badge ${isExpired ? 'expired' : 'active'}">
+                            ${isExpired ? 'Expired' : 'Active'}
+                        </span>
+                    </td>
+                    <td class="action-buttons">
+                        <button onclick="deleteCustomer('${escapeHtml(customer.email)}')" class="btn-small btn-danger">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+            
+        } catch (err) {
+            console.error("Error loading customers:", err);
+            const tbody = document.getElementById("customersTableBody");
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" style="text-align: center; color: #F44336;">
+                        Error: ${err.message}
+                    </td>
+                </tr>
+            `;
+        }
+    }
+    
+    // Load film requests - FIXED
+    async function loadFilmRequests() {
+        try {
+            const res = await fetch(`${API_BASE}/staff/films/all`);
+            if (!res.ok) {
+                // Fallback to old endpoint
+                const res2 = await fetch(`${API_BASE}/staff/films`);
+                if (!res2.ok) throw new Error(`HTTP ${res2.status}`);
+                
+                const data = await res2.json();
+                renderFilmsTable(data);
+                return;
+            }
+            
+            const data = await res.json();
+            renderFilmsTable(data);
+            
+        } catch (err) {
+            console.error("Error loading film requests:", err);
+            const tbody = document.getElementById("filmsTableBody");
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" style="text-align: center; color: #F44336;">
+                        Error: ${err.message}
+                    </td>
+                </tr>
+            `;
+        }
+    }
+    
+    function renderFilmsTable(data) {
+        const tbody = document.getElementById("filmsTableBody");
         tbody.innerHTML = '';
         
-        if (data.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No pending requests</td></tr>';
-          return;
+        if (!Array.isArray(data) || data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No film requests</td></tr>';
+            return;
         }
         
-        data.forEach(item => {
-          const row = document.createElement("tr");
-          row.innerHTML = `
-            <td>${item.email || 'N/A'}</td>
-            <td>${item.name || 'N/A'}</td>
-            <td>${item.plan || 'N/A'}</td>
-            <td>${item.date ? new Date(item.date).toLocaleDateString() : 'N/A'}</td>
-            <td>
-              <button onclick="approveRequest('${item.email}')" class="btn-small btn-success">
-                <i class="fas fa-check"></i> Approve
-              </button>
-              <button onclick="deletePending('${item.email}')" class="btn-small btn-danger">
-                <i class="fas fa-trash"></i> Delete
-              </button>
-            </td>
-          `;
-          tbody.appendChild(row);
+        data.forEach(film => {
+            const row = document.createElement("tr");
+            row.innerHTML = `
+                <td>${escapeHtml(film.title || 'N/A')}</td>
+                <td>${escapeHtml(film.email || film.requestedBy || 'Anonymous')}</td>
+                <td>${film.date ? formatDate(film.date) : 'N/A'}</td>
+                <td>
+                    <span class="status-badge pending">
+                        Pending
+                    </span>
+                </td>
+                <td class="action-buttons">
+                    <button onclick="deleteFilmRequest('${escapeHtml(film.title)}')" class="btn-small btn-danger">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+    
+    // Load support tickets - FIXED
+    async function loadSupportTickets() {
+        try {
+            const res = await fetch(`${API_BASE}/staff/support/all`);
+            if (!res.ok) {
+                // Fallback to old endpoint
+                const res2 = await fetch(`${API_BASE}/staff/support-tickets`);
+                if (!res2.ok) throw new Error(`HTTP ${res2.status}`);
+                
+                const data = await res2.json();
+                renderSupportTable(data);
+                return;
+            }
+            
+            const data = await res.json();
+            renderSupportTable(data);
+            
+        } catch (err) {
+            console.error("Error loading support tickets:", err);
+            const tbody = document.getElementById("supportTableBody");
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" style="text-align: center; color: #F44336;">
+                        Error: ${err.message}
+                    </td>
+                </tr>
+            `;
+        }
+    }
+    
+    function renderSupportTable(data) {
+        const tbody = document.getElementById("supportTableBody");
+        tbody.innerHTML = '';
+        
+        if (!Array.isArray(data) || data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No support tickets</td></tr>';
+            return;
+        }
+        
+        data.forEach(ticket => {
+            const messagePreview = ticket.message ? 
+                (ticket.message.length > 50 ? ticket.message.substring(0, 50) + '...' : ticket.message) : 
+                'No message';
+            
+            const row = document.createElement("tr");
+            row.innerHTML = `
+                <td>${escapeHtml(ticket.email || 'Anonymous')}</td>
+                <td title="${escapeHtml(ticket.message || '')}">${escapeHtml(messagePreview)}</td>
+                <td>${ticket.date ? formatDate(ticket.date) : 'N/A'}</td>
+                <td>
+                    <span class="status-badge ${ticket.status === 'resolved' ? 'resolved' : 'open'}">
+                        ${ticket.status || 'Open'}
+                    </span>
+                </td>
+                <td class="action-buttons">
+                    <button onclick="deleteSupportTicket('${escapeHtml(ticket.email)}')" class="btn-small btn-danger">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+    
+    // Tab navigation - FIXED
+    function showTab(tabName) {
+        // Hide all tabs
+        document.querySelectorAll('.tab-content').forEach(tab => {
+            tab.classList.remove('active');
         });
         
-      } catch (err) {
-        console.error("Error loading pending requests:", err);
-      }
-    }
-    
-    // Load customers
-    async function loadCustomers() {
-      // Note: You'll need to add a /staff/customers endpoint to your backend
-      // For now, we'll create a simple mock
-      updateCustomerCount(25); // Mock count
-      
-      const tbody = document.getElementById("customersTableBody");
-      tbody.innerHTML = `
-        <tr>
-          <td colspan="5" style="text-align: center;">
-            Customer list functionality requires backend endpoint
-          </td>
-        </tr>
-      `;
-    }
-    
-    // Load film requests
-    async function loadFilmRequests() {
-      // Note: You'll need to add a /staff/films endpoint to your backend
-      updateFilmRequestCount(12); // Mock count
-      
-      const tbody = document.getElementById("filmsTableBody");
-      tbody.innerHTML = `
-        <tr>
-          <td colspan="5" style="text-align: center;">
-            Film requests functionality requires backend endpoint
-          </td>
-        </tr>
-      `;
-    }
-    
-    // Load support tickets
-    async function loadSupportTickets() {
-      // Note: You'll need to add a /staff/support endpoint to your backend
-      updateSupportCount(8); // Mock count
-      
-      const tbody = document.getElementById("supportTableBody");
-      tbody.innerHTML = `
-        <tr>
-          <td colspan="5" style="text-align: center;">
-            Support tickets functionality requires backend endpoint
-          </td>
-        </tr>
-      `;
-    }
-    
-    // Update stats counters
-    function updateStats() {
-      // These would come from your actual data
-      document.getElementById("customerCount").textContent = "25";
-      document.getElementById("pendingCount").textContent = document.querySelectorAll("#pendingTableBody tr").length - 1;
-      document.getElementById("filmRequestCount").textContent = "12";
-      document.getElementById("supportCount").textContent = "8";
-    }
-    
-    function updateCustomerCount(count) {
-      document.getElementById("customerCount").textContent = count;
-    }
-    
-    function updateFilmRequestCount(count) {
-      document.getElementById("filmRequestCount").textContent = count;
-    }
-    
-    function updateSupportCount(count) {
-      document.getElementById("supportCount").textContent = count;
-    }
-    
-    // Tab navigation
-    function showTab(tabName) {
-      // Hide all tabs
-      document.querySelectorAll('.tab-content').forEach(tab => {
-        tab.classList.remove('active');
-      });
-      
-      // Remove active class from all tab buttons
-      document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.classList.remove('active');
-      });
-      
-      // Show selected tab
-      document.getElementById(tabName + 'Tab').classList.add('active');
-      
-      // Add active class to clicked button
-      event.target.classList.add('active');
+        // Remove active class from all tab buttons
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        
+        // Show selected tab
+        document.getElementById(tabName + 'Tab').classList.add('active');
+        
+        // Add active class to clicked button
+        event.target.classList.add('active');
     }
     
     // Show/Hide create customer form
     function showCreateCustomer() {
-      document.getElementById("createCustomerForm").style.display = "block";
+        document.getElementById("createCustomerForm").style.display = "block";
     }
     
     function hideCreateCustomer() {
-      document.getElementById("createCustomerForm").style.display = "none";
+        document.getElementById("createCustomerForm").style.display = "none";
     }
     
-    // Show all customers
+    // Show all customers - FIXED
     function showAllCustomers() {
-      showTab('customers');
+        showTab('customers');
+        loadCustomers(); // Refresh data when clicking the button
     }
     
     // Refresh all data
     function refreshData() {
-      loadDashboardData();
-      alert("Data refreshed!");
+        loadDashboardData();
+        showNotification("Data refreshed successfully!", "success");
     }
     
-    // Approve request (mock function)
-    function approveRequest(email) {
-      if (confirm(`Approve account request for ${email}?`)) {
-        alert(`Request for ${email} approved!`);
-        loadPendingRequests();
-      }
+    // Approve request (mock function - you need to implement)
+    async function approveRequest(email) {
+        if (confirm(`Approve account request for ${email}?`)) {
+            try {
+                // First create customer account
+                const password = generateRandomPassword();
+                const expires = new Date();
+                expires.setFullYear(expires.getFullYear() + 1); // 1 year expiry
+                
+                const res = await fetch(`${API_BASE}/staff/create`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ 
+                        email: email, 
+                        password: password,
+                        expires: expires.toISOString().split('T')[0]
+                    })
+                });
+                
+                if (res.ok) {
+                    // Then delete from pending
+                    await deletePendingRequest(email);
+                    showNotification(`Account created for ${email}! Password: ${password}`, "success");
+                    loadDashboardData();
+                } else {
+                    const data = await res.json();
+                    showNotification(`Error: ${data.error}`, "error");
+                }
+            } catch (err) {
+                showNotification("Error approving request", "error");
+            }
+        }
     }
     
-    // Delete pending request (mock function)
-    function deletePending(email) {
-      if (confirm(`Delete request from ${email}?`)) {
-        alert(`Request from ${email} deleted!`);
-        loadPendingRequests();
-      }
+    // Delete functions
+    async function deletePendingRequest(email) {
+        if (confirm(`Delete pending request from ${email}?`)) {
+            try {
+                const res = await fetch(`${API_BASE}/staff/delete/pending/${encodeURIComponent(email)}`, {
+                    method: "DELETE"
+                });
+                
+                if (res.ok) {
+                    showNotification("Pending request deleted!", "success");
+                    loadPendingRequests();
+                    loadStats();
+                } else {
+                    showNotification("Failed to delete", "error");
+                }
+            } catch (err) {
+                showNotification("Error deleting request", "error");
+            }
+        }
+    }
+    
+    async function deleteCustomer(email) {
+        if (confirm(`Delete customer account ${email}? This cannot be undone.`)) {
+            try {
+                const res = await fetch(`${API_BASE}/staff/delete/customer/${encodeURIComponent(email)}`, {
+                    method: "DELETE"
+                });
+                
+                if (res.ok) {
+                    showNotification("Customer deleted!", "success");
+                    loadCustomers();
+                    loadStats();
+                } else {
+                    showNotification("Failed to delete customer", "error");
+                }
+            } catch (err) {
+                showNotification("Error deleting customer", "error");
+            }
+        }
+    }
+    
+    async function deleteFilmRequest(title) {
+        if (confirm(`Delete film request: "${title}"?`)) {
+            try {
+                const res = await fetch(`${API_BASE}/staff/delete/film/${encodeURIComponent(title)}`, {
+                    method: "DELETE"
+                });
+                
+                if (res.ok) {
+                    showNotification("Film request deleted!", "success");
+                    loadFilmRequests();
+                    loadStats();
+                } else {
+                    showNotification("Failed to delete", "error");
+                }
+            } catch (err) {
+                showNotification("Error deleting film request", "error");
+            }
+        }
+    }
+    
+    async function deleteSupportTicket(email) {
+        if (confirm(`Delete support ticket from ${email}?`)) {
+            try {
+                const res = await fetch(`${API_BASE}/staff/delete/support/${encodeURIComponent(email)}`, {
+                    method: "DELETE"
+                });
+                
+                if (res.ok) {
+                    showNotification("Support ticket deleted!", "success");
+                    loadSupportTickets();
+                    loadStats();
+                } else {
+                    showNotification("Failed to delete", "error");
+                }
+            } catch (err) {
+                showNotification("Error deleting support ticket", "error");
+            }
+        }
     }
     
     // Logout function
     function logout() {
-      localStorage.removeItem("staffEmail");
-      localStorage.removeItem("staffRole");
-      document.getElementById("staffPanel").style.display = "none";
-      document.getElementById("staffLoginBox").style.display = "block";
-      document.getElementById("email").value = "";
-      document.getElementById("password").value = "";
+        localStorage.removeItem("staffEmail");
+        localStorage.removeItem("staffRole");
+        document.getElementById("staffPanel").style.display = "none";
+        document.getElementById("staffLoginBox").style.display = "block";
+        document.getElementById("email").value = "";
+        document.getElementById("password").value = "";
+    }
+    
+    // Utility functions
+    function formatDate(dateString) {
+        if (!dateString) return 'N/A';
+        try {
+            const date = new Date(dateString);
+            return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        } catch (e) {
+            return dateString;
+        }
+    }
+    
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+    
+    function generateRandomPassword() {
+        return Math.random().toString(36).slice(-8);
+    }
+    
+    function showNotification(message, type) {
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.className = `notification ${type}`;
+        notification.innerHTML = `
+            <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
+            <span>${message}</span>
+            <button onclick="this.parentElement.remove()">&times;</button>
+        `;
+        
+        // Add to page
+        document.body.appendChild(notification);
+        
+        // Auto remove after 5 seconds
+        setTimeout(() => {
+            if (notification.parentElement) {
+                notification.remove();
+            }
+        }, 5000);
     }
     
     // Auto-login if staff data exists
     window.onload = function() {
-      const savedEmail = localStorage.getItem("staffEmail");
-      if (savedEmail) {
-        document.getElementById("email").value = savedEmail;
-      }
+        const savedEmail = localStorage.getItem("staffEmail");
+        if (savedEmail) {
+            document.getElementById("email").value = savedEmail;
+        }
     };
-  </script>
+</script>
+
+<style>
+    /* Add these styles to your existing styles.css */
+    .status-badge {
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        font-weight: bold;
+    }
+    
+    .status-badge.active {
+        background: rgba(76, 175, 80, 0.2);
+        color: #4CAF50;
+        border: 1px solid #4CAF50;
+    }
+    
+    .status-badge.expired {
+        background: rgba(244, 67, 54, 0.2);
+        color: #F44336;
+        border: 1px solid #F44336;
+    }
+    
+    .status-badge.pending {
+        background: rgba(255, 152, 0, 0.2);
+        color: #FF9800;
+        border: 1px solid #FF9800;
+    }
+    
+    .status-badge.open {
+        background: rgba(33, 150, 243, 0.2);
+        color: #2196F3;
+        border: 1px solid #2196F3;
+    }
+    
+    .status-badge.resolved {
+        background: rgba(76, 175, 80, 0.2);
+        color: #4CAF50;
+        border: 1px solid #4CAF50;
+    }
+    
+    .action-buttons {
+        display: flex;
+        gap: 8px;
+        flex-wrap: nowrap;
+    }
+    
+    .notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 15px 20px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        z-index: 1000;
+        animation: slideIn 0.3s ease;
+        max-width: 400px;
+    }
+    
+    .notification.success {
+        background: rgba(76, 175, 80, 0.9);
+        color: white;
+        border: 1px solid #4CAF50;
+    }
+    
+    .notification.error {
+        background: rgba(244, 67, 54, 0.9);
+        color: white;
+        border: 1px solid #F44336;
+    }
+    
+    .notification button {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 1.2rem;
+        cursor: pointer;
+        margin-left: auto;
+    }
+    
+    @keyframes slideIn {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+    }
+</style>
 </body>
 </html>

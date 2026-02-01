@@ -336,3 +336,48 @@ if __name__ == "__main__":
     debug = os.getenv("FLASK_ENV") == "development"
     print(f"🚀 Starting XVision backend on port {port}")
     app.run(host="0.0.0.0", port=port, debug=debug)
+    
+# Add these endpoints AFTER the existing staff endpoints but BEFORE the health check
+
+# === STATISTICS ENDPOINTS ===
+@app.route("/staff/stats")
+def get_stats():
+    """Get counts for all collections"""
+    try:
+        if any([customers is None, pending is None, films is None, support is None]):
+            return jsonify({"error": "Database unavailable"}), 503
+        
+        stats = {
+            "customers": customers.count_documents({}),
+            "pending": pending.count_documents({}),
+            "films": films.count_documents({}),
+            "support": support.count_documents({})
+        }
+        return jsonify(stats)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# === COMPLETE TABLE ENDPOINTS ===
+@app.route("/staff/films/all")
+def get_all_films():
+    """Get all film requests"""
+    try:
+        if films is None:
+            return jsonify({"error": "Database unavailable"}), 503
+        
+        films_list = list(films.find({}, {"_id": 0}).sort("date", -1))
+        return jsonify(films_list)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/staff/support/all")
+def get_all_support():
+    """Get all support tickets"""
+    try:
+        if support is None:
+            return jsonify({"error": "Database unavailable"}), 503
+        
+        tickets = list(support.find({}, {"_id": 0}).sort("date", -1))
+        return jsonify(tickets)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
