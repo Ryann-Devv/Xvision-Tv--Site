@@ -234,6 +234,7 @@
 
  
   <script src="script.js"></script>
+<script src="script.js"></script>
 <script>
     // Admin Dashboard Functions
     let currentStaffEmail = '';
@@ -266,14 +267,27 @@
             // Store staff info
             currentStaffEmail = data.email;
             localStorage.setItem("staffEmail", data.email);
-            localStorage.setItem("staffRole", data.role);
+            localStorage.setItem("staffRole", data.role || "staff");
             
-            // Show dashboard
+            // Show dashboard - FIXED ORDER
             document.getElementById("staffLoginBox").style.display = "none";
             document.getElementById("staffPanel").style.display = "block";
             
-            // Display staff email
-            document.getElementById("staffEmailDisplay").textContent = `Logged in as: ${data.email}`;
+            // FIX: Update display immediately
+            const emailDisplay = document.getElementById("staffEmailDisplay");
+            if (emailDisplay) {
+                emailDisplay.textContent = `Logged in as: ${data.email}`;
+            } else {
+                console.error("staffEmailDisplay element not found");
+                // Create it dynamically if missing
+                const userInfoDiv = document.querySelector(".user-info");
+                if (userInfoDiv) {
+                    const newDisplay = document.createElement("span");
+                    newDisplay.id = "staffEmailDisplay";
+                    newDisplay.textContent = `Logged in as: ${data.email}`;
+                    userInfoDiv.insertBefore(newDisplay, userInfoDiv.firstChild);
+                }
+            }
             
             // Load all data
             await loadDashboardData();
@@ -286,30 +300,74 @@
     
     // Load all dashboard data
     async function loadDashboardData() {
-        await loadStats();
-        await loadPendingRequests();
-        await loadCustomers();
-        await loadFilmRequests();
-        await loadSupportTickets();
+        try {
+            await Promise.all([
+                loadStats(),
+                loadPendingRequests(),
+                loadCustomers(),
+                loadFilmRequests(),
+                loadSupportTickets()
+            ]);
+        } catch (err) {
+            console.error("Error loading dashboard data:", err);
+        }
     }
     
     // Load statistics
     async function loadStats() {
         try {
             const res = await fetch(`${API_BASE}/staff/stats`);
-            if (!res.ok) return;
+            if (!res.ok) {
+                console.warn("Stats endpoint not available, using fallback");
+                updateStatsFromTables();
+                return;
+            }
             
             const data = await res.json();
             
             // Update count displays
-            document.getElementById("customerCount").textContent = data.customers || 0;
-            document.getElementById("pendingCount").textContent = data.pending || 0;
-            document.getElementById("filmRequestCount").textContent = data.films || 0;
-            document.getElementById("supportCount").textContent = data.support || 0;
+            if (document.getElementById("customerCount")) {
+                document.getElementById("customerCount").textContent = data.customers || 0;
+            }
+            if (document.getElementById("pendingCount")) {
+                document.getElementById("pendingCount").textContent = data.pending || 0;
+            }
+            if (document.getElementById("filmRequestCount")) {
+                document.getElementById("filmRequestCount").textContent = data.films || 0;
+            }
+            if (document.getElementById("supportCount")) {
+                document.getElementById("supportCount").textContent = data.support || 0;
+            }
             
         } catch (err) {
             console.error("Error loading stats:", err);
+            updateStatsFromTables();
         }
+    }
+    
+    // Fallback: update stats from table counts
+    function updateStatsFromTables() {
+        setTimeout(() => {
+            const pendingRows = document.querySelectorAll("#pendingTableBody tr").length;
+            if (pendingRows > 0 && document.getElementById("pendingCount")) {
+                document.getElementById("pendingCount").textContent = pendingRows;
+            }
+            
+            const customerRows = document.querySelectorAll("#customersTableBody tr").length;
+            if (customerRows > 0 && document.getElementById("customerCount")) {
+                document.getElementById("customerCount").textContent = customerRows;
+            }
+            
+            const filmRows = document.querySelectorAll("#filmsTableBody tr").length;
+            if (filmRows > 0 && document.getElementById("filmRequestCount")) {
+                document.getElementById("filmRequestCount").textContent = filmRows;
+            }
+            
+            const supportRows = document.querySelectorAll("#supportTableBody tr").length;
+            if (supportRows > 0 && document.getElementById("supportCount")) {
+                document.getElementById("supportCount").textContent = supportRows;
+            }
+        }, 1000);
     }
     
     // Load pending requests
@@ -322,6 +380,8 @@
             
             const data = await res.json();
             const tbody = document.getElementById("pendingTableBody");
+            if (!tbody) return;
+            
             tbody.innerHTML = '';
             
             if (!Array.isArray(data) || data.length === 0) {
@@ -351,17 +411,19 @@
         } catch (err) {
             console.error("Error loading pending requests:", err);
             const tbody = document.getElementById("pendingTableBody");
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="5" style="text-align: center; color: #F44336;">
-                        Error: ${err.message}
-                    </td>
-                </tr>
-            `;
+            if (tbody) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" style="text-align: center; color: #F44336;">
+                            Error loading: ${err.message}
+                        </td>
+                    </tr>
+                `;
+            }
         }
     }
     
-    // Load customers - FIXED
+    // Load customers
     async function loadCustomers() {
         try {
             const res = await fetch(`${API_BASE}/staff/customers`);
@@ -371,6 +433,8 @@
             
             const data = await res.json();
             const tbody = document.getElementById("customersTableBody");
+            if (!tbody) return;
+            
             tbody.innerHTML = '';
             
             if (!Array.isArray(data) || data.length === 0) {
@@ -404,19 +468,22 @@
         } catch (err) {
             console.error("Error loading customers:", err);
             const tbody = document.getElementById("customersTableBody");
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="5" style="text-align: center; color: #F44336;">
-                        Error: ${err.message}
-                    </td>
-                </tr>
-            `;
+            if (tbody) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" style="text-align: center; color: #F44336;">
+                            Error: ${err.message}
+                        </td>
+                    </tr>
+                `;
+            }
         }
     }
     
-    // Load film requests - FIXED
+    // Load film requests
     async function loadFilmRequests() {
         try {
+            // Try new endpoint first
             const res = await fetch(`${API_BASE}/staff/films/all`);
             if (!res.ok) {
                 // Fallback to old endpoint
@@ -434,18 +501,22 @@
         } catch (err) {
             console.error("Error loading film requests:", err);
             const tbody = document.getElementById("filmsTableBody");
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="5" style="text-align: center; color: #F44336;">
-                        Error: ${err.message}
-                    </td>
-                </tr>
-            `;
+            if (tbody) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" style="text-align: center; color: #F44336;">
+                            Error: ${err.message}
+                        </td>
+                    </tr>
+                `;
+            }
         }
     }
     
     function renderFilmsTable(data) {
         const tbody = document.getElementById("filmsTableBody");
+        if (!tbody) return;
+        
         tbody.innerHTML = '';
         
         if (!Array.isArray(data) || data.length === 0) {
@@ -474,9 +545,10 @@
         });
     }
     
-    // Load support tickets - FIXED
+    // Load support tickets
     async function loadSupportTickets() {
         try {
+            // Try new endpoint first
             const res = await fetch(`${API_BASE}/staff/support/all`);
             if (!res.ok) {
                 // Fallback to old endpoint
@@ -494,18 +566,22 @@
         } catch (err) {
             console.error("Error loading support tickets:", err);
             const tbody = document.getElementById("supportTableBody");
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="5" style="text-align: center; color: #F44336;">
-                        Error: ${err.message}
-                    </td>
-                </tr>
-            `;
+            if (tbody) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" style="text-align: center; color: #F44336;">
+                            Error: ${err.message}
+                        </td>
+                    </tr>
+                `;
+            }
         }
     }
     
     function renderSupportTable(data) {
         const tbody = document.getElementById("supportTableBody");
+        if (!tbody) return;
+        
         tbody.innerHTML = '';
         
         if (!Array.isArray(data) || data.length === 0) {
@@ -538,7 +614,7 @@
         });
     }
     
-    // Tab navigation - FIXED
+    // Tab navigation
     function showTab(tabName) {
         // Hide all tabs
         document.querySelectorAll('.tab-content').forEach(tab => {
@@ -551,25 +627,47 @@
         });
         
         // Show selected tab
-        document.getElementById(tabName + 'Tab').classList.add('active');
+        const tabElement = document.getElementById(tabName + 'Tab');
+        if (tabElement) {
+            tabElement.classList.add('active');
+        }
         
         // Add active class to clicked button
-        event.target.classList.add('active');
+        if (event && event.target) {
+            event.target.classList.add('active');
+        }
+        
+        // Refresh data for the selected tab
+        switch(tabName) {
+            case 'pending':
+                loadPendingRequests();
+                break;
+            case 'customers':
+                loadCustomers();
+                break;
+            case 'films':
+                loadFilmRequests();
+                break;
+            case 'support':
+                loadSupportTickets();
+                break;
+        }
     }
     
     // Show/Hide create customer form
     function showCreateCustomer() {
-        document.getElementById("createCustomerForm").style.display = "block";
+        const form = document.getElementById("createCustomerForm");
+        if (form) form.style.display = "block";
     }
     
     function hideCreateCustomer() {
-        document.getElementById("createCustomerForm").style.display = "none";
+        const form = document.getElementById("createCustomerForm");
+        if (form) form.style.display = "none";
     }
     
-    // Show all customers - FIXED
+    // Show all customers
     function showAllCustomers() {
         showTab('customers');
-        loadCustomers(); // Refresh data when clicking the button
     }
     
     // Refresh all data
@@ -578,14 +676,14 @@
         showNotification("Data refreshed successfully!", "success");
     }
     
-    // Approve request (mock function - you need to implement)
+    // Approve request
     async function approveRequest(email) {
         if (confirm(`Approve account request for ${email}?`)) {
             try {
                 // First create customer account
                 const password = generateRandomPassword();
                 const expires = new Date();
-                expires.setFullYear(expires.getFullYear() + 1); // 1 year expiry
+                expires.setFullYear(expires.getFullYear() + 1);
                 
                 const res = await fetch(`${API_BASE}/staff/create`, {
                     method: "POST",
@@ -746,15 +844,44 @@
         }, 5000);
     }
     
-    // Auto-login if staff data exists
+    // Check if already logged in
     window.onload = function() {
         const savedEmail = localStorage.getItem("staffEmail");
         if (savedEmail) {
             document.getElementById("email").value = savedEmail;
+            // Auto-login if credentials are saved
+            // staffLogin(); // Uncomment if you want auto-login
+        }
+        
+        // Check if we're already on dashboard
+        if (window.location.hash === '#dashboard' || localStorage.getItem("staffEmail")) {
+            // Try to restore session
+            const staffPanel = document.getElementById("staffPanel");
+            const loginBox = document.getElementById("staffLoginBox");
+            if (staffPanel && loginBox) {
+                const email = localStorage.getItem("staffEmail");
+                if (email) {
+                    // Show dashboard but don't load data until login
+                    loginBox.style.display = "none";
+                    staffPanel.style.display = "block";
+                    
+                    const emailDisplay = document.getElementById("staffEmailDisplay");
+                    if (emailDisplay) {
+                        emailDisplay.textContent = `Logged in as: ${email}`;
+                    }
+                    
+                    // Show loading state
+                    if (document.getElementById("customerCount")) {
+                        document.getElementById("customerCount").textContent = "Loading...";
+                    }
+                    if (document.getElementById("pendingCount")) {
+                        document.getElementById("pendingCount").textContent = "Loading...";
+                    }
+                }
+            }
         }
     };
 </script>
-
 <style>
     /* Add these styles to your existing styles.css */
     .status-badge {
