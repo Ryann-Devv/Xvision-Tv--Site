@@ -166,3 +166,114 @@ async function createCustomer() {
         alert("Error creating customer");
     }
 }
+
+// ========== CUSTOMER LOGIN ==========
+async function login() {
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
+
+    if (!email || !password) {
+        alert("Please enter email and password");
+        return;
+    }
+
+    try {
+        const res = await fetch("https://xvision-backend-ao7z.onrender.com/customer/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, password })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+            alert(data.error || "Login failed");
+            return;
+        }
+
+        // Success - show customer portal
+        document.getElementById("loginBox").style.display = "none";
+        document.getElementById("portal").style.display = "block";
+        document.getElementById("exp").textContent = data.expires;
+        
+        // Store user data
+        localStorage.setItem("customerEmail", data.email);
+        
+    } catch (err) {
+        alert("Server error. Please try again.");
+        console.error(err);
+    }
+}
+
+// ========== CUSTOMER FILM REQUEST ==========
+async function filmReq() {
+    const title = document.getElementById("film").value;
+    const email = localStorage.getItem("customerEmail");
+
+    if (!title) {
+        alert("Please enter a film title");
+        return;
+    }
+
+    try {
+        const res = await fetch("https://xvision-backend-ao7z.onrender.com/request/film", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ 
+                title: title,
+                email: email || "unknown",
+                date: new Date().toISOString()
+            })
+        });
+
+        if (res.ok) {
+            alert("Film request submitted!");
+            document.getElementById("film").value = "";
+        } else {
+            const data = await res.json();
+            alert(data.error || "Failed to submit request");
+        }
+    } catch (err) {
+        alert("Server error");
+        console.error(err);
+    }
+}
+
+// ========== CUSTOMER SUPPORT REQUEST ==========
+async function supportReq() {
+    const message = document.getElementById("msg").value;
+    const email = localStorage.getItem("customerEmail") || prompt("Please enter your email:");
+
+    if (!message) {
+        alert("Please enter a message");
+        return;
+    }
+
+    if (!email) {
+        alert("Email is required for support");
+        return;
+    }
+
+    try {
+        const res = await fetch("https://xvision-backend-ao7z.onrender.com/request/support", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ 
+                email: email,
+                message: message,
+                date: new Date().toISOString()
+            })
+        });
+
+        if (res.ok) {
+            alert("Support request submitted!");
+            document.getElementById("msg").value = "";
+        } else {
+            const data = await res.json();
+            alert(data.error || "Failed to submit request");
+        }
+    } catch (err) {
+        alert("Server error");
+        console.error(err);
+    }
+}

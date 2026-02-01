@@ -1,41 +1,86 @@
-<link rel="stylesheet" href="styles.css">
-<div class="container">
-    <h2>Customer Portal</h2>
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Customer Portal - XVision IPTV</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Back to Home -->
+    <a href="index.html" class="back-btn">
+      <i class="fas fa-arrow-left"></i> Back to Home
+    </a>
     
-    <div id="loginBox">
-        <h3>Login</h3>
-        <input id="email" type="email" placeholder="Your email">
-        <input id="password" type="password" placeholder="Password">
-        <button onclick="login()">Login</button>
+    <h2><i class="fas fa-user"></i> Customer Portal</h2>
+    
+    <div id="loginBox" class="form-container">
+      <h3><i class="fas fa-sign-in-alt"></i> Login</h3>
+      
+      <div class="form-group">
+        <label for="email"><i class="fas fa-envelope"></i> Email Address</label>
+        <input id="email" type="email" placeholder="your.email@example.com">
+      </div>
+      
+      <div class="form-group">
+        <label for="password"><i class="fas fa-lock"></i> Password</label>
+        <input id="password" type="password" placeholder="Enter your password">
+      </div>
+      
+      <button onclick="login()" class="btn btn-primary btn-block">
+        <i class="fas fa-sign-in-alt"></i> Login to Account
+      </button>
+      
+      <p style="text-align: center; margin-top: 20px;">
+        Don't have an account? <a href="request.html">Request one here</a>
+      </p>
     </div>
 
     <div id="portal" style="display:none">
-        <h3>Welcome!</h3>
+      <div class="welcome-section">
+        <h3><i class="fas fa-user-circle"></i> Welcome Back!</h3>
         <p>Subscription expires: <strong><span id="exp"></span></strong></p>
-        
-        <div class="section">
-            <h4>Request a Film</h4>
-            <input id="film" placeholder="Film title">
-            <button onclick="filmReq()">Submit Request</button>
+      </div>
+      
+      <div class="section">
+        <h4><i class="fas fa-film"></i> Request a Film</h4>
+        <p>Can't find a movie or show? Request it here!</p>
+        <div class="form-group">
+          <input id="film" placeholder="Enter film or TV show title" class="film-input">
         </div>
-        
-        <div class="section">
-            <h4>Contact Support</h4>
-            <textarea id="msg" placeholder="Describe your issue..." rows="4"></textarea>
-            <button onclick="supportReq()">Send Message</button>
+        <button onclick="filmReq()" class="btn btn-primary">
+          <i class="fas fa-paper-plane"></i> Submit Request
+        </button>
+      </div>
+      
+      <div class="section">
+        <h4><i class="fas fa-headset"></i> Contact Support</h4>
+        <p>Need help with your service? We're here for you!</p>
+        <div class="form-group">
+          <textarea id="msg" placeholder="Describe your issue or question..." rows="4"></textarea>
         </div>
-        
-        <button onclick="logout()" style="margin-top: 20px; background: #666;">Logout</button>
+        <button onclick="supportReq()" class="btn btn-secondary">
+          <i class="fas fa-envelope"></i> Send Message
+        </button>
+      </div>
+      
+      <div class="logout-section">
+        <button onclick="logout()" class="btn btn-outline">
+          <i class="fas fa-sign-out-alt"></i> Logout
+        </button>
+      </div>
     </div>
-</div>
+  </div>
 
-<script>
-function logout() {
+  <script>
+  function logout() {
     localStorage.removeItem("customerEmail");
     document.getElementById("portal").style.display = "none";
     document.getElementById("loginBox").style.display = "block";
     document.getElementById("email").value = "";
     document.getElementById("password").value = "";
-}
-</script>
-<script src="script.js"></script>
+  }
+  </script>
+  <script src="script.js"></script>
+</body>
+</html>
