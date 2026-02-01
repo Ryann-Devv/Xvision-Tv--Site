@@ -1,13 +1,41 @@
 <link rel="stylesheet" href="styles.css">
-<div id="loginBox">
-  <input id="email">
-  <input id="password" type="password">
-  <button onclick="login()">Login</button>
+<div class="container">
+    <h2>Customer Portal</h2>
+    
+    <div id="loginBox">
+        <h3>Login</h3>
+        <input id="email" type="email" placeholder="Your email">
+        <input id="password" type="password" placeholder="Password">
+        <button onclick="login()">Login</button>
+    </div>
+
+    <div id="portal" style="display:none">
+        <h3>Welcome!</h3>
+        <p>Subscription expires: <strong><span id="exp"></span></strong></p>
+        
+        <div class="section">
+            <h4>Request a Film</h4>
+            <input id="film" placeholder="Film title">
+            <button onclick="filmReq()">Submit Request</button>
+        </div>
+        
+        <div class="section">
+            <h4>Contact Support</h4>
+            <textarea id="msg" placeholder="Describe your issue..." rows="4"></textarea>
+            <button onclick="supportReq()">Send Message</button>
+        </div>
+        
+        <button onclick="logout()" style="margin-top: 20px; background: #666;">Logout</button>
+    </div>
 </div>
 
-<div id="portal" style="display:none">
-  Expires: <span id="exp"></span>
-  <input id="film"><button onclick="filmReq()">Film</button>
-  <textarea id="msg"></textarea><button onclick="supportReq()">Support</button>
-</div>
+<script>
+function logout() {
+    localStorage.removeItem("customerEmail");
+    document.getElementById("portal").style.display = "none";
+    document.getElementById("loginBox").style.display = "block";
+    document.getElementById("email").value = "";
+    document.getElementById("password").value = "";
+}
+</script>
 <script src="script.js"></script>
