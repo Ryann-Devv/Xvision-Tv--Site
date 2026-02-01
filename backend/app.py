@@ -6,29 +6,27 @@ import bcrypt, os, datetime, requests
 app = Flask(__name__)
 CORS(app)
 
-# ---------- DATABASE ----------
+# ---------------- DATABASE ----------------
 MONGO_URI = os.getenv("MONGO_URI")
 client = MongoClient(MONGO_URI)
-
 db = client["xvision"]
 
 customers = db["customers"]
+staff = db["staff"]
 pending = db["pending"]
-staff_col = db["staff"]
 films = db["films"]
-support_col = db["support"]
+support = db["support"]
+audit = db["audit"]
 
-# ---------- ENV ----------
+# ---------------- ENV ----------------
 RESEND = os.getenv("RESEND_API_KEY")
 ADMIN = os.getenv("ADMIN_EMAIL")
 SUBS = os.getenv("SUBSCRIPTIONS_EMAIL")
 
-# ---------- EMAIL ----------
+# ---------------- EMAIL ----------------
 def send_email(to, subject, html):
     if not RESEND:
-        print("RESEND API KEY MISSING")
         return
-
     requests.post(
         "https://api.resend.com/emails",
         headers={"Authorization": f"Bearer {RESEND}"},
@@ -40,154 +38,88 @@ def send_email(to, subject, html):
         }
     )
 
-# ---------- RENEWAL REMINDERS ----------
-def check_renewals():
-    today = datetime.date.today()
+# ---------------- AUDIT ----------------
+def log(action, actor):
+    audit.insert_one({
+        "action": action,
+        "actor": actor,
+        "time": datetime.datetime.utcnow().isoformat()
+    })
 
-    for u in customers.find():
-        try:
-            exp = datetime.date.fromisoformat(u["expires"])
-        except Exception:
-            continue
-
-        days = (exp - today).days
-
-        if days == 14 and not u.get("rem14"):
-            send_email(
-                u["email"],
-                "XVision Renewal Reminder",
-                "<p>Your subscription expires in 14 days.</p>"
-            )
-            customers.update_one(
-                {"email": u["email"]},
-                {"$set": {"rem14": True}}
-            )
-
-        if days == 3 and not u.get("rem3"):
-            send_email(
-                u["email"],
-                "XVision Expiring Soon",
-                "<p>Your subscription expires in 3 days.</p>"
-            )
-            customers.update_one(
-                {"email": u["email"]},
-                {"$set": {"rem3": True}}
-            )
-
-# Run once on startup
-check_renewals()
-
-# ---------- PUBLIC ----------
+# ---------------- PUBLIC ----------------
 @app.route("/request/account", methods=["POST"])
 def request_account():
     data = request.get_json()
-
-    if not data:
-        return jsonify({"error": "No data"}), 400
-
     pending.insert_one(data)
-    send_email(SUBS, "New Account Request", data.get("email", "No email"))
-
+    send_email(SUBS, "New Account Request", f"<p>{data['email']}</p>")
+    log("Account requested", data["email"])
     return jsonify({"ok": True})
 
-# ---------- CUSTOMER ----------
+# ---------------- CUSTOMER ----------------
 @app.route("/customer/login", methods=["POST"])
 def customer_login():
-    data = request.get_json()
-
-    if not data:
-        return jsonify({"error": "No data"}), 400
-
-    user = customers.find_one({"email": data.get("email")})
-
-    if not user:
+    d = request.get_json()
+    u = customers.find_one({"email": d["email"]})
+    if not u or not bcrypt.checkpw(d["password"].encode(), u["password"]):
         return jsonify({"error": "Invalid"}), 401
 
-    if not bcrypt.checkpw(
-        data.get("password", "").encode(),
-        user["password"]
-    ):
-        return jsonify({"error": "Invalid"}), 401
+    log("Customer login", u["email"])
+    return jsonify({"email": u["email"], "expires": u["expires"]})
 
-    return jsonify({
-        "email": user["email"],
-        "expires": user["expires"]
-    })
-
-@app.route("/request/film", methods=["POST"])
-def film_request():
-    data = request.get_json()
-    if not data:
-        return jsonify({"error": "No data"}), 400
-
-    films.insert_one(data)
+@app.route("/customer/film", methods=["POST"])
+def customer_film():
+    d = request.get_json()
+    films.insert_one(d)
+    log("Film request", d["email"])
     return jsonify({"ok": True})
 
-@app.route("/request/support", methods=["POST"])
-def support_request():
-    data = request.get_json()
-    if not data:
-        return jsonify({"error": "No data"}), 400
-
-    support_col.insert_one(data)
-    send_email(ADMIN, "New Support Request", data.get("message", ""))
-
+@app.route("/customer/support", methods=["POST"])
+def customer_support():
+    d = request.get_json()
+    support.insert_one(d)
+    send_email(ADMIN, "Support Request", d["message"])
+    log("Support request", d["email"])
     return jsonify({"ok": True})
 
-# ---------- STAFF ----------
+# ---------------- STAFF ----------------
 @app.route("/staff/login", methods=["POST"])
 def staff_login():
-    try:
-        data = request.get_json(force=True)
-        print("STAFF LOGIN DATA:", data)
+    d = request.get_json()
+    s = staff.find_one({"email": d["email"]})
+    if not s or s["password"] != d["password"]:
+        return jsonify({"error": "Invalid"}), 401
 
-        email = data.get("email")
-        password = data.get("password")
-
-        if not email or not password:
-            return jsonify({"error": "Missing credentials"}), 400
-
-        staff = staff_col.find_one({"email": email})
-
-        if not staff:
-            return jsonify({"error": "Staff not found"}), 401
-
-        if staff["password"] != password:
-            return jsonify({"error": "Invalid password"}), 401
-
-        return jsonify({
-            "email": staff["email"],
-            "role": staff.get("role", "staff")
-        })
-
-    except Exception as e:
-        print("STAFF LOGIN ERROR:", str(e))
-        return jsonify({"error": "Server error"}), 500
+    log("Staff login", s["email"])
+    return jsonify({"email": s["email"], "role": s.get("role","staff")})
 
 @app.route("/staff/create", methods=["POST"])
-def create_customer():
-    data = request.get_json()
-
-    if not data:
-        return jsonify({"error": "No data"}), 400
-
+def staff_create():
+    d = request.get_json()
     customers.insert_one({
-        "email": data["email"],
-        "password": bcrypt.hashpw(
-            data["password"].encode(),
-            bcrypt.gensalt()
-        ),
-        "expires": data["expires"],
+        "email": d["email"],
+        "password": bcrypt.hashpw(d["password"].encode(), bcrypt.gensalt()),
+        "expires": d["expires"],
         "rem14": False,
         "rem3": False
     })
-
+    log("Customer created", d["email"])
     return jsonify({"ok": True})
 
 @app.route("/staff/pending")
 def staff_pending():
-    return jsonify(list(pending.find({}, {"_id": 0})))
+    return jsonify(list(pending.find({},{"_id":0})))
 
-# ---------- RUN ----------
+@app.route("/staff/films")
+def staff_films():
+    return jsonify(list(films.find({},{"_id":0})))
+
+@app.route("/staff/support")
+def staff_support():
+    return jsonify(list(support.find({},{"_id":0})))
+
+@app.route("/staff/audit")
+def staff_audit():
+    return jsonify(list(audit.find({},{"_id":0})))
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)

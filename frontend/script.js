@@ -1,12 +1,6 @@
-const API = "https://xvision-backend-ao7z.onrender.com/";
+const API = "https://YOUR-RENDER-APP.onrender.com";
 
-function req(){
-  fetch(API+"/request/account",{method:"POST",
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({email:email.value})
-  });
-}
-
+// ---------- CUSTOMER ----------
 function login(){
   fetch(API+"/customer/login",{
     method:"POST",
@@ -15,63 +9,48 @@ function login(){
       email:email.value,
       password:password.value
     })
-  })
-  .then(r=>r.json())
-  .then(d=>{
+  }).then(r=>r.json()).then(d=>{
     if(d.expires){
-      document.getElementById("exp").innerText = d.expires;
-      document.getElementById("loginBox").style.display = "none";
-      document.getElementById("portal").style.display = "block";
-    } else {
-      alert("Login failed");
-    }
+      loginBox.style.display="none";
+      portal.style.display="block";
+      exp.innerText=d.expires;
+    } else alert("Login failed");
   });
 }
-
 
 function filmReq(){
-  fetch(API+"/request/film",{method:"POST",
+  fetch(API+"/customer/film",{
+    method:"POST",
     headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({title:film.value})
+    body:JSON.stringify({email:email.value, film:film.value})
   });
 }
 
-function support(){
-  fetch(API+"/request/support",{method:"POST",
+function supportReq(){
+  fetch(API+"/customer/support",{
+    method:"POST",
     headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({message:msg.value})
+    body:JSON.stringify({email:email.value, message:msg.value})
   });
 }
 
+// ---------- STAFF ----------
 function staffLogin(){
   fetch(API+"/staff/login",{
     method:"POST",
     headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({
-      email:email.value,
-      password:password.value
-    })
-  })
-  .then(r=>r.json())
-  .then(d=>{
-    console.log("STAFF LOGIN RESPONSE:", d);
-
+    body:JSON.stringify({email:email.value,password:password.value})
+  }).then(r=>r.json()).then(d=>{
     if(d.email){
-      document.getElementById("staffLogin").style.display="none";
-      document.getElementById("staffPanel").style.display="block";
-    } else {
-      alert("Login failed");
-    }
-  })
-  .catch(err=>{
-    console.error(err);
-    alert("Server error");
+      staffLoginBox.style.display="none";
+      staffPanel.style.display="block";
+    } else alert("Login failed");
   });
 }
 
-
-function create(){
-  fetch(API+"/staff/create",{method:"POST",
+function createCustomer(){
+  fetch(API+"/staff/create",{
+    method:"POST",
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({
       email:cemail.value,
