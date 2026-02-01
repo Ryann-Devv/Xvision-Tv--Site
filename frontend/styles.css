@@ -573,3 +573,213 @@ footer {
     justify-content: center;
   }
 }
+
+/* ===== FORM BOX STYLES ===== */
+.form-box {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 0;
+  margin: 25px 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+.form-header {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 20px 30px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.form-header h3, .form-header h4 {
+  margin: 0 0 8px 0;
+  color: white;
+}
+
+.form-header p {
+  margin: 0;
+  color: #a0c3e0;
+  font-size: 0.95rem;
+}
+
+.form-content {
+  padding: 30px;
+}
+
+/* ===== ACCOUNT INFO STYLES ===== */
+.account-info {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.info-item:last-child {
+  border-bottom: none;
+}
+
+.info-label {
+  min-width: 180px;
+  color: #a0c3e0;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.info-value {
+  color: white;
+  flex: 1;
+}
+
+/* ===== WELCOME BOX ===== */
+.welcome-box {
+  border-left: 4px solid #1da1ff;
+}
+
+.welcome-box .form-header {
+  background: rgba(29, 161, 255, 0.1);
+}
+
+/* ===== QUICK ACTIONS ===== */
+.quick-actions-box {
+  border-left: 4px solid #7a3cff;
+}
+
+.actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+}
+
+.action-btn {
+  padding: 15px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: white;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+}
+
+.action-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateY(-3px);
+  border-color: #1da1ff;
+}
+
+.action-btn i {
+  font-size: 1.5rem;
+  color: #1da1ff;
+}
+
+/* ===== LOGOUT SECTION ===== */
+.logout-section {
+  text-align: center;
+  margin: 40px 0 20px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* ===== STATUS BADGES ===== */
+.status-badge {
+  display: inline-block;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: bold;
+}
+
+.status-badge.active {
+  background: rgba(76, 175, 80, 0.2);
+  color: #4CAF50;
+  border: 1px solid #4CAF50;
+}
+
+.status-badge.expired {
+  background: rgba(244, 67, 54, 0.2);
+  color: #F44336;
+  border: 1px solid #F44336;
+}
+
+/* ===== FORM FOOTER ===== */
+.form-footer {
+  margin-top: 25px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  text-align: center;
+  color: #a0c3e0;
+}
+
+.form-footer p {
+  margin: 10px 0;
+}
+
+.link {
+  color: #1da1ff;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+/* ===== FILM INPUT ===== */
+.film-input {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  padding: 12px;
+  border-radius: 6px;
+  width: 100%;
+  font-size: 1rem;
+}
+
+.film-input:focus {
+  outline: none;
+  border-color: #1da1ff;
+  box-shadow: 0 0 0 2px rgba(29, 161, 255, 0.2);
+}
+
+/* ===== RESPONSIVE ADJUSTMENTS ===== */
+@media (max-width: 768px) {
+  .form-header {
+    padding: 15px 20px;
+  }
+  
+  .form-content {
+    padding: 20px;
+  }
+  
+  .info-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+  }
+  
+  .info-label {
+    min-width: auto;
+  }
+  
+  .actions-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .form-box {
+    margin: 15px 0;
+  }
+}

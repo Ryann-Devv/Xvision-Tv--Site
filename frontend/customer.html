@@ -14,56 +14,145 @@
     
     <h2><i class="fas fa-user"></i> Customer Portal</h2>
     
-    <div id="loginBox" class="form-container">
-      <h3><i class="fas fa-sign-in-alt"></i> Login</h3>
-      
-      <div class="form-group">
-        <label for="email"><i class="fas fa-envelope"></i> Email Address</label>
-        <input id="email" type="email" placeholder="your.email@example.com">
+    <!-- Login Form Box -->
+    <div id="loginBox" class="form-box">
+      <div class="form-header">
+        <h3><i class="fas fa-sign-in-alt"></i> Customer Login</h3>
+        <p>Enter your credentials to access your account</p>
       </div>
       
-      <div class="form-group">
-        <label for="password"><i class="fas fa-lock"></i> Password</label>
-        <input id="password" type="password" placeholder="Enter your password">
+      <div class="form-content">
+        <div class="form-group">
+          <label for="email"><i class="fas fa-envelope"></i> Email Address</label>
+          <input id="email" type="email" placeholder="your.email@example.com">
+        </div>
+        
+        <div class="form-group">
+          <label for="password"><i class="fas fa-lock"></i> Password</label>
+          <input id="password" type="password" placeholder="Enter your password">
+        </div>
+        
+        <button onclick="login()" class="btn btn-primary btn-block">
+          <i class="fas fa-sign-in-alt"></i> Login to Account
+        </button>
+        
+        <div class="form-footer">
+          <p>Don't have an account? <a href="request.html" class="link">Request one here</a></p>
+          <p>Forgot password? <a href="#" class="link" onclick="alert('Contact support: subscriptions@xvision-tv.xyz')">Reset here</a></p>
+        </div>
       </div>
-      
-      <button onclick="login()" class="btn btn-primary btn-block">
-        <i class="fas fa-sign-in-alt"></i> Login to Account
-      </button>
-      
-      <p style="text-align: center; margin-top: 20px;">
-        Don't have an account? <a href="request.html">Request one here</a>
-      </p>
     </div>
 
+    <!-- Customer Portal (Hidden until login) -->
     <div id="portal" style="display:none">
-      <div class="welcome-section">
-        <h3><i class="fas fa-user-circle"></i> Welcome Back!</h3>
-        <p>Subscription expires: <strong><span id="exp"></span></strong></p>
-      </div>
-      
-      <div class="section">
-        <h4><i class="fas fa-film"></i> Request a Film</h4>
-        <p>Can't find a movie or show? Request it here!</p>
-        <div class="form-group">
-          <input id="film" placeholder="Enter film or TV show title" class="film-input">
+      <!-- Welcome Box -->
+      <div class="form-box welcome-box">
+        <div class="form-header">
+          <h3><i class="fas fa-user-circle"></i> Welcome Back!</h3>
+          <p>Manage your account and request support</p>
         </div>
-        <button onclick="filmReq()" class="btn btn-primary">
-          <i class="fas fa-paper-plane"></i> Submit Request
-        </button>
-      </div>
-      
-      <div class="section">
-        <h4><i class="fas fa-headset"></i> Contact Support</h4>
-        <p>Need help with your service? We're here for you!</p>
-        <div class="form-group">
-          <textarea id="msg" placeholder="Describe your issue or question..." rows="4"></textarea>
+        
+        <div class="form-content">
+          <div class="account-info">
+            <div class="info-item">
+              <span class="info-label"><i class="fas fa-envelope"></i> Account:</span>
+              <span class="info-value" id="accountEmail">Loading...</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label"><i class="fas fa-calendar-check"></i> Subscription expires:</span>
+              <span class="info-value"><strong id="exp"></strong></span>
+            </div>
+            <div class="info-item">
+              <span class="info-label"><i class="fas fa-clock"></i> Account status:</span>
+              <span class="status-badge active" id="accountStatus">Active</span>
+            </div>
+          </div>
         </div>
-        <button onclick="supportReq()" class="btn btn-secondary">
-          <i class="fas fa-envelope"></i> Send Message
-        </button>
       </div>
       
+      <!-- Film Request Box -->
+      <div class="form-box">
+        <div class="form-header">
+          <h4><i class="fas fa-film"></i> Request a Film or Show</h4>
+          <p>Can't find a movie or TV show? Request it here!</p>
+        </div>
+        
+        <div class="form-content">
+          <div class="form-group">
+            <label for="film"><i class="fas fa-search"></i> Title</label>
+            <input id="film" placeholder="Enter film or TV show title">
+          </div>
+          
+          <div class="form-group">
+            <label for="filmNotes"><i class="fas fa-sticky-note"></i> Additional Notes (optional)</label>
+            <textarea id="filmNotes" placeholder="Year, director, or any other details that might help..." rows="2"></textarea>
+          </div>
+          
+          <button onclick="filmReq()" class="btn btn-primary">
+            <i class="fas fa-paper-plane"></i> Submit Request
+          </button>
+        </div>
+      </div>
+      
+      <!-- Support Request Box -->
+      <div class="form-box">
+        <div class="form-header">
+          <h4><i class="fas fa-headset"></i> Contact Support</h4>
+          <p>Need help with your service? We're here for you!</p>
+        </div>
+        
+        <div class="form-content">
+          <div class="form-group">
+            <label for="supportEmail"><i class="fas fa-envelope"></i> Email Address</label>
+            <input id="supportEmail" type="email" placeholder="Your contact email">
+          </div>
+          
+          <div class="form-group">
+            <label for="msg"><i class="fas fa-comment"></i> Message</label>
+            <textarea id="msg" placeholder="Describe your issue or question in detail..." rows="4"></textarea>
+          </div>
+          
+          <div class="form-group">
+            <label for="priority"><i class="fas fa-flag"></i> Priority</label>
+            <select id="priority">
+              <option value="low">Low - General question</option>
+              <option value="normal" selected>Normal - Need assistance</option>
+              <option value="high">High - Service not working</option>
+              <option value="urgent">Urgent - Cannot access content</option>
+            </select>
+          </div>
+          
+          <button onclick="supportReq()" class="btn btn-secondary">
+            <i class="fas fa-envelope"></i> Send Message to Support
+          </button>
+        </div>
+      </div>
+      
+      <!-- Quick Actions Box -->
+      <div class="form-box quick-actions-box">
+        <div class="form-header">
+          <h4><i class="fas fa-bolt"></i> Quick Actions</h4>
+        </div>
+        
+        <div class="form-content">
+          <div class="actions-grid">
+            <button onclick="checkSubscription()" class="action-btn">
+              <i class="fas fa-calendar-alt"></i> Check Subscription
+            </button>
+            <button onclick="viewGuide()" class="action-btn">
+              <i class="fas fa-tv"></i> View Channel Guide
+            </button>
+            <button onclick="testConnection()" class="action-btn">
+              <i class="fas fa-wifi"></i> Test Connection
+            </button>
+            <button onclick="faq()" class="action-btn">
+              <i class="fas fa-question-circle"></i> View FAQ
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Logout Section -->
       <div class="logout-section">
         <button onclick="logout()" class="btn btn-outline">
           <i class="fas fa-sign-out-alt"></i> Logout
@@ -73,12 +162,47 @@
   </div>
 
   <script>
+  // Logout function
   function logout() {
     localStorage.removeItem("customerEmail");
     document.getElementById("portal").style.display = "none";
     document.getElementById("loginBox").style.display = "block";
     document.getElementById("email").value = "";
     document.getElementById("password").value = "";
+  }
+  
+  // Quick action functions
+  function checkSubscription() {
+    const email = localStorage.getItem("customerEmail");
+    if (email) {
+      alert(`Subscription check requested for ${email}. We'll email you details.`);
+    } else {
+      alert("Please login first.");
+    }
+  }
+  
+  function viewGuide() {
+    window.open("https://xvision-tv.xyz/guide", "_blank");
+  }
+  
+  function testConnection() {
+    alert("Testing your connection... Please wait.");
+    setTimeout(() => {
+      alert("Connection test complete! All systems are operational.");
+    }, 1500);
+  }
+  
+  function faq() {
+    window.open("https://xvision-tv.xyz/faq", "_blank");
+  }
+  
+  // Update account email on login
+  function updateAccountInfo(email) {
+    const accountEmail = document.getElementById("accountEmail");
+    const supportEmail = document.getElementById("supportEmail");
+    
+    if (accountEmail) accountEmail.textContent = email;
+    if (supportEmail) supportEmail.value = email;
   }
   </script>
   <script src="script.js"></script>

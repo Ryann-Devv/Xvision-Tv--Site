@@ -277,3 +277,22 @@ async function supportReq() {
         console.error(err);
     }
 }
+
+// Update the success part of your login() function:
+if (!res.ok) {
+    alert(data.error || "Login failed");
+    return;
+}
+
+// Success - show customer portal
+document.getElementById("loginBox").style.display = "none";
+document.getElementById("portal").style.display = "block";
+document.getElementById("exp").textContent = data.expires;
+
+// Store user data
+localStorage.setItem("customerEmail", data.email);
+
+// Update account info display
+if (typeof updateAccountInfo === 'function') {
+    updateAccountInfo(data.email);
+}
